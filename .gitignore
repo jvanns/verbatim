@@ -1,0 +1,7 @@
+verbatim
+*.pyc
+*.pyo
+*.o
+*.d
+*~
+.config
