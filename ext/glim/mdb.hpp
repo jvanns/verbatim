@@ -389,8 +389,8 @@ struct Mdb {
     mdb.add (C2GSTRING ("foo"), 3);
     mdb.add (C2GSTRING ("foo"), 4);
     mdb.add (C2GSTRING ("gsk"), C2GSTRING ("gsv"));
-    string ts; int ti; gstring tgs;
-    auto fail = [](string msg) {throw std::runtime_error ("assertion failed: " + msg);};
+    std::string ts; int ti; gstring tgs;
+    auto fail = [](std::string msg) {throw std::runtime_error ("assertion failed: " + msg);};
     if (!mdb.first (std::string ("foo"), ts) || ts != "bar") fail ("!foo=bar");
     if (!mdb.first ((uint32_t) 123, ti) || ti < 1 || ti > 2) fail ("!123");
     if (!mdb.first (C2GSTRING ("foo"), ti) || ti < 3 || ti > 4) fail ("!foo=3,4");
@@ -475,19 +475,19 @@ struct Mdb {
 
     // Add indexed.
     mdb.add (C2GSTRING ("ik"), C2GSTRING ("iv1"));
-    mdb.add (C2GSTRING ("ik"), string ("iv2"));
+    mdb.add (C2GSTRING ("ik"), std::string ("iv2"));
     mdb.add (C2GSTRING ("ik"), 3);
     // Check the index.
     gstring ik;
     if (!indexDb.first (C2GSTRING ("iv1"), ik) || ik != "ik") fail ("!iv1=ik");
-    if (!indexDb.first (string ("iv2"), ik) || ik != "ik") fail ("!iv2=ik");
+    if (!indexDb.first (std::string ("iv2"), ik) || ik != "ik") fail ("!iv2=ik");
     if (!indexDb.first (3, ik) || ik != "ik") fail ("!iv3=ik");
 
     // Remove indexed.
-    mdb.eraseKV (C2GSTRING ("ik"), string ("iv2"));
+    mdb.eraseKV (C2GSTRING ("ik"), std::string ("iv2"));
     // Check the index.
     if (!indexDb.first (C2GSTRING ("iv1"), ik) || ik != "ik") fail ("!iv1=ik");
-    if (indexDb.first (string ("iv2"), ik)) fail ("iv2=ik");
+    if (indexDb.first (std::string ("iv2"), ik)) fail ("iv2=ik");
     if (!indexDb.first (3, ik) || ik != "ik") fail ("!iv3=ik");
 
     // Remove indexed.
