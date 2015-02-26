@@ -39,6 +39,8 @@ class Database
         RegisterPath new_path;
 
         /* Methods/Member functions */
+        void add_path(const Traverse::Path &p);
+
         /* Friend class declarations */
         friend class RegisterPath;
 };
