@@ -21,7 +21,13 @@ limitations under the License.
  * @file
  */
 
+// glim
+#include "gstring.hpp"
+
+// lmdb
 #include <lmdb.h>
+
+// boost
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -29,9 +35,14 @@ limitations under the License.
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/iterator_range.hpp>
 
-#include <arpa/inet.h> // htonl, ntohl
+// libstdc++
+#include <map>
+#include <string>
+#include <memory>
+#include <exception>
 
-#include "gstring.hpp"
+// libc
+#include<arpa/inet.h> // htonl, ntohl
 
 namespace glim {
 
