@@ -23,16 +23,21 @@ limitations under the License.
  * @file
  */
 
+// glim
+#include "exception.hpp"
+
+// libstdc++
+#include <iostream>
+#include <iterator>
+#include <stdexcept>
+
+// libc
 #include <assert.h>
 #include <stdlib.h>  // malloc, realloc, free
 #include <stdint.h>
 #include <string.h>  // memcpy, memmem
 #include <stdio.h>  // snprintf
-#include <stdexcept>
-#include <iostream>
-#include <iterator>
-
-#include "exception.hpp"
+#include <alloca.h>
 
 /// Make a read-only gstring from a C string: `const gstring foo = C2GSTRING("foo")`.
 #define C2GSTRING(CSTR) ::glim::gstring (::glim::gstring::ReferenceConstructor(), CSTR, sizeof (CSTR) - 1, true)
@@ -456,7 +461,8 @@ public:
   /// Wrapper around strtol. Copies the string into a temporary buffer in order to pass it to strtol. Empty string returns 0.
   long toInt (int base = 10) const noexcept {
     const uint32_t len = length(); if (len == 0) return 0;
-    char buf[len + 1]; memcpy (buf, _buf, len); buf[len] = 0;
+    char *buf = (char*) alloca(len + 1);
+    memcpy (buf, _buf, len); buf[len] = 0;
     return ::strtol (buf, nullptr, base);
   }
 
