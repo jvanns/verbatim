@@ -21,7 +21,8 @@ CXXFLAGS += -Wall -pedantic -Wno-long-long
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
 
 # Main program dependencies
-VERBATIM_DEPS = src/Traverse.o
+VERBATIM_DEPS = src/Traverse.o \
+	src/Database.o
 
 # Tests
 test_delegate: src/tests/delegate.o
@@ -31,11 +32,11 @@ test_traverse: src/tests/traverse.o src/Traverse.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
 
 # Main program
-#verbatim: src/verbatim.o $(COMMON_DEPS) $(VERBATIM_DEPS)
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
+verbatim: src/verbatim.o $(VERBATIM_DEPS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
 
 # Phony targets
-all: test_delegate test_traverse
+all: test_delegate test_traverse verbatim
 
 pkg:
 	mkdir -p pkg
@@ -54,7 +55,7 @@ install:
 	$(INSTALL) -m 0644 docs/*.1 $(DESTDIR)$(MANDIR)/man1
 
 clean:
-	-rm -f test_delegate test_traverse pkg/$(NAME)-*.tar.gz
+	-rm -f verbatim test_* pkg/$(NAME)-*.tar.gz
 	-find `pwd` -depth -type f -name '*.[od]' -prune \
 		\! -path "`pwd`[/].git/*" | xargs rm -f
 
