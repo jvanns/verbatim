@@ -9,8 +9,7 @@
 #include "Traverse.hpp"
 
 // libstdc++
-
-// libc
+#include <string>
 
 namespace verbatim {
 
@@ -20,6 +19,8 @@ class Database
         /* Methods/Member functions */
         Database(Traverse &t);
         ~Database();
+
+        void store(const std::string &path);
     private:
         /* Type definitions */
         class RegisterPath : public Traverse::Callback

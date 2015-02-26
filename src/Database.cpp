@@ -5,9 +5,7 @@
 // Interface
 #include "Database.hpp"
 
-// libstdc++
-
-// libc
+using std::string;
 
 namespace verbatim {
 
@@ -18,6 +16,12 @@ Database::Database(Traverse &t) : traverser(t), new_path(*this)
 
 Database::~Database()
 {
+}
+
+void
+Database::store(const string &path)
+{
+    traverser.scan(path);
 }
 
 Database::RegisterPath::RegisterPath(Database &db) : database(db)
