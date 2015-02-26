@@ -1,4 +1,5 @@
 verbatim
+test_*
 *.pyc
 *.pyo
 *.o
