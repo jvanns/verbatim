@@ -12,7 +12,7 @@ PYTHON_SITELIB ?= $(PREFIX)/lib/python/site-packages
 CC ?= gcc
 CXX ?= g++
 LIBS ?=
-CPPFLAGS += -MMD -MP -I./src/
+CPPFLAGS += -MMD -MP -I./src/ -Wno-unused-local-typedefs
 CXXFLAGS += -Wall -pedantic -Wno-long-long
 
 .PHONY: clean dist install all
