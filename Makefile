@@ -40,7 +40,7 @@ test_traverse: src/tests/traverse.o src/Traverse.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $^
 
 test_glim: src/tests/glim.o lmdb
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $<
 
 # Main program
 verbatim: src/verbatim.o $(VERBATIM_DEPS)
