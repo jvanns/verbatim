@@ -11,7 +11,7 @@ PYTHON_SITELIB ?= $(PREFIX)/lib/python/site-packages
 
 CC ?= gcc
 CXX ?= g++
-LIBS ?=
+LDLIBS ?=
 LDFLAGS ?=
 CPPFLAGS += -MMD -MP -I./src/ -Wno-unused-local-typedefs
 CXXFLAGS += -Wall -pedantic -Wno-long-long
@@ -22,7 +22,7 @@ CXXFLAGS += -Wall -pedantic -Wno-long-long
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
 src/tests/glim.o: CPPFLAGS += -Iext/glim -Isub/lmdb/libraries/liblmdb
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-test_glim: LIBS += -llmdb
+test_glim: LDLIBS += -llmdb
 
 # Main program dependencies
 VERBATIM_DEPS = src/Traverse.o \
@@ -34,17 +34,17 @@ lmdb:
 
 # Tests
 test_delegate: src/tests/delegate.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $^
 
 test_traverse: src/tests/traverse.o src/Traverse.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $^
 
 test_glim: src/tests/glim.o lmdb
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $^
 
 # Main program
 verbatim: src/verbatim.o $(VERBATIM_DEPS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $@ $^
 
 # Phony targets
 all: lmdb test_delegate test_traverse test_glim verbatim
