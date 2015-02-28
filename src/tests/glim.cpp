@@ -5,7 +5,11 @@
 // libglim
 #include "mdb.hpp"
 
+// boost
+#include <boost/serialization/map.hpp>
+
 // libstdc++
+#include <map>
 #include <string>
 
 // libc
@@ -67,6 +71,31 @@ int main(int argc, char *argv[])
         unsigned int key = 0xDEADBEEF, out;
 
         assert(!db.first(key, out));
+    }
+
+    /*
+     * Timed insertion of a trivial type
+     */
+    {
+        glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
+
+        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j)
+            db.add(i, j);
+    }
+
+    /*
+     * Timed insertion of a complex type
+     */
+    {
+        glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
+
+        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
+            std::map<int32_t, int32_t> m;
+            const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
+
+            m[i] = j;
+            db.add(key, m);
+        }
     }
 
     return 0;
