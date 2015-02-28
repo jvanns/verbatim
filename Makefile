@@ -22,7 +22,7 @@ CXXFLAGS += -Wall -pedantic -Wno-long-long
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
 src/tests/glim.o: CPPFLAGS += -Iext/glim -Isub/lmdb/libraries/liblmdb
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-test_glim: LDLIBS += -llmdb
+test_glim: LDLIBS += -llmdb -lboost_serialization
 
 # Main program dependencies
 VERBATIM_DEPS = src/Traverse.o \
