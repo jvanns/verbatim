@@ -24,6 +24,9 @@ src/tests/glim.o: CPPFLAGS += -Iext/glim -Isub/lmdb/libraries/liblmdb
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 test_glim: LDLIBS += -llmdb -lboost_serialization
 
+# Common utility dependencies
+COMMON_DEPS = src/utility/Timer.o
+
 # Main program dependencies
 VERBATIM_DEPS = src/Traverse.o \
 	src/Database.o
@@ -39,8 +42,9 @@ test_delegate: src/tests/delegate.o
 test_traverse: src/tests/traverse.o src/Traverse.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-test_glim: src/tests/glim.o lmdb
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
+src/tests/glim.o: lmdb
+test_glim: src/tests/glim.o $(COMMON_DEPS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Main program
 verbatim: src/verbatim.o $(VERBATIM_DEPS)

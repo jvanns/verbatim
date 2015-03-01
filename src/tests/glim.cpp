@@ -2,6 +2,9 @@
  * vim: set smartindent autoindent expandtab tabstop=4 shiftwidth=4:
  */
 
+// verbatim
+#include "utility/Timer.hpp"
+
 // libglim
 #include "mdb.hpp"
 
@@ -11,12 +14,16 @@
 // libstdc++
 #include <map>
 #include <string>
+#include <iostream>
 
 // libc
 #include <assert.h>
 
 int main(int argc, char *argv[])
 {
+    using std::cout;
+    using std::endl;
+
     /*
      * Test std::string KVP insert and retrieval
      */
@@ -77,16 +84,23 @@ int main(int argc, char *argv[])
      * Timed insertion of a trivial type
      */
     {
+        size_t time = 0;
+        verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
+        t.start();
         for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j)
             db.add(i, j);
+        time = t.elapsed();
+        cout << "Insert of TT: " << time << " ns\n";
     }
 
     /*
      * Timed insertion of a complex type
      */
     {
+        size_t time = 0;
+        verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
@@ -94,8 +108,11 @@ int main(int argc, char *argv[])
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
 
             m[i] = j;
+            t.start();
             db.add(key, m);
+            time += t.elapsed();
         }
+        cout << "Insert of CT: " << time << " ns\n";
     }
 
     return 0;
