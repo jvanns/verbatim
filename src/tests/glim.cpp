@@ -96,6 +96,25 @@ int main(int argc, char *argv[])
     }
 
     /*
+     * Timed retrieval of a trivial type
+     */
+    {
+        size_t time = 0;
+        verbatim::Timer t;
+        glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
+
+        t.start();
+        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
+            int32_t out;
+            db.first(i, out);
+            assert(out == j);
+        }
+
+        time = t.elapsed();
+        cout << "Retrieval of TT: " << time << " ns\n";
+    }
+
+    /*
      * Timed insertion of a complex type
      */
     {
@@ -113,6 +132,28 @@ int main(int argc, char *argv[])
             time += t.elapsed();
         }
         cout << "Insert of CT: " << time << " ns\n";
+    }
+
+    /*
+     * Timed retrieval of a complex type
+     */
+    {
+        size_t time = 0;
+        verbatim::Timer t;
+        glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
+
+        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
+            std::map<int32_t, int32_t> m;
+            const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
+
+            m[i] = j;
+            t.start();
+            db.first(key, m);
+            time += t.elapsed();
+            assert(m.begin()->first == i &&
+                   m.begin()->second == j);
+        }
+        cout << "Retrieval of CT: " << time << " ns\n";
     }
 
     return 0;
