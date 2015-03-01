@@ -22,6 +22,7 @@
 int main(int argc, char *argv[])
 {
     using std::cout;
+    using std::cerr;
     using std::endl;
 
     /*
@@ -90,11 +91,12 @@ int main(int argc, char *argv[])
         verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
+        cerr << "Insert of " << max << " TT: ";
         t.start();
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j)
             db.add(i, j);
         time = t.elapsed();
-        cout << "Insert of TT: " << time << " ns\n";
+        cerr << time << " ns\n";
     }
 
     /*
@@ -105,6 +107,7 @@ int main(int argc, char *argv[])
         verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
+        cerr << "Retrieval of " << max << " TT: ";
         t.start();
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             int32_t out;
@@ -113,7 +116,7 @@ int main(int argc, char *argv[])
         }
 
         time = t.elapsed();
-        cout << "Retrieval of TT: " << time << " ns\n";
+        cerr << time << " ns\n";
     }
 
     /*
@@ -124,6 +127,7 @@ int main(int argc, char *argv[])
         verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
+        cerr << "Insert of " << max << " CT: ";
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             std::map<int32_t, int32_t> m;
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
@@ -133,7 +137,7 @@ int main(int argc, char *argv[])
             db.add(key, m);
             time += t.elapsed();
         }
-        cout << "Insert of CT: " << time << " ns\n";
+        cerr << time << " ns\n";
     }
 
     /*
@@ -144,6 +148,7 @@ int main(int argc, char *argv[])
         verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
+        cerr << "Retrieval of " << max << " CT: ";
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             std::map<int32_t, int32_t> m;
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
@@ -155,7 +160,7 @@ int main(int argc, char *argv[])
             assert(m.begin()->first == i &&
                    m.begin()->second == j);
         }
-        cout << "Retrieval of CT: " << time << " ns\n";
+        cerr << time << " ns\n";
     }
 
     return 0;
