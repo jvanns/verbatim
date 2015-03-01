@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
         assert(!db.first(key, out));
     }
 
+    static const int32_t max = 1UL << 20; // 1 million
+
     /*
      * Timed insertion of a trivial type
      */
@@ -89,7 +91,7 @@ int main(int argc, char *argv[])
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         t.start();
-        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j)
+        for (int32_t i = 0, j = max ; j > 0 ; ++i, --j)
             db.add(i, j);
         time = t.elapsed();
         cout << "Insert of TT: " << time << " ns\n";
@@ -104,7 +106,7 @@ int main(int argc, char *argv[])
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         t.start();
-        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
+        for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             int32_t out;
             db.first(i, out);
             assert(out == j);
@@ -122,7 +124,7 @@ int main(int argc, char *argv[])
         verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
-        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
+        for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             std::map<int32_t, int32_t> m;
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
 
@@ -142,7 +144,7 @@ int main(int argc, char *argv[])
         verbatim::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
-        for (int32_t i = 0, j = 1UL << 20 ; j > 0 ; ++i, --j) {
+        for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             std::map<int32_t, int32_t> m;
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
 
