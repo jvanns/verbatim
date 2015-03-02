@@ -1,0 +1,18 @@
+Verbatim seeks to be yet another (less shit) music manager. It was born out
+of total frustration when using existing music programs available for Linux
+and Mac OS X ended in tears for me and bruises for my laptop. Why are some
+programs so slow and clunky? Why do they suck so much ass when all they're
+dealing with is a small DB of text (ID3 tags) and the odd BLOB?
+
+Anyway... small steps. Presently the world is not yet ready for this software.
+
+In short it must;
+
+* Traverse a (music) root directory
+* Maintain a DB of MP3 paths beneath it along with all ID3 tags of each (MP3)
+* Index all tags for searching
+* Sync to an iPod
+* Do not dick around with any tags!
+* Do not dick around with the directory structure
+
+Such humble goals.
