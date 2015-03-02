@@ -18,6 +18,7 @@ CXXFLAGS += -Wall -pedantic -Wno-long-long
 .PHONY: clean dist install all lmdb
 
 # Selective, per-module/unit additions
+src/utility/Hash.o: CXXFLAGS += -O3
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
 src/Database.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
