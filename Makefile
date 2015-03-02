@@ -53,7 +53,7 @@ test_glim: src/tests/glim.o $(UTILITY_DEPS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Main program
-verbatim: src/verbatim.o $(VERBATIM_DEPS)
+verbatim: src/verbatim.o $(VERBATIM_DEPS) $(UTILITY_DEPS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Phony targets
