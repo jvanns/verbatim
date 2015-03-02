@@ -8,6 +8,9 @@
 // verbatim
 #include "Traverse.hpp"
 
+// libglim
+#include "glim/mdb.hpp"
+
 // libstdc++
 #include <string>
 
@@ -35,6 +38,7 @@ class Database
         };
 
         /* Attributes/member variables */
+        glim::Mdb *db;
         Traverse &traverser;
         RegisterPath new_path;
 

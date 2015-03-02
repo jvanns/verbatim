@@ -22,6 +22,11 @@ int main(int argc, char *argv[])
     using verbatim::Database;
 
     if (!argv[1]) {
+        cerr << "Provide a filename in which to store data" << endl;
+        return 1;
+    }
+
+    if (!argv[2]) {
         cerr << "Provide a source 'root' path" << endl;
         return 1;
     }
@@ -30,6 +35,7 @@ int main(int argc, char *argv[])
     Database db(t);
 
     db.open(argv[1]);
+    t.scan(argv[2]);
 
     return 0;
 }
