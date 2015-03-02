@@ -11,6 +11,7 @@
 #include <sys/time.h>
 
 namespace verbatim {
+namespace utility {
 
 class Timer
 {
@@ -27,6 +28,7 @@ class Timer
         timespec started, stopped;
 };
 
+} // utility
 } // verbatim
 
 #endif // VERBATIM_UTILITY_TIMER_HPP

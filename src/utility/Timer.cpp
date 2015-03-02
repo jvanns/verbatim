@@ -25,6 +25,7 @@ diff(const timespec &from, const timespec &to)
 } // anonymous
 
 namespace verbatim {
+namespace utility {
 
 Timer::Timer() : running(false)
 {
@@ -57,4 +58,5 @@ Timer::elapsed() const
     return diff(now(), started);
 }
 
+} // utility
 } // verbatim

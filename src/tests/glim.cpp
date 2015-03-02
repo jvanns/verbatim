@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
      */
     {
         size_t time = 0;
-        verbatim::Timer t;
+        verbatim::utility::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Insert of " << max << " TT: ";
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
      */
     {
         size_t time = 0;
-        verbatim::Timer t;
+        verbatim::utility::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Retrieval of " << max << " TT: ";
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
      */
     {
         size_t time = 0;
-        verbatim::Timer t;
+        verbatim::utility::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Insert of " << max << " CT: ";
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
      */
     {
         size_t time = 0;
-        verbatim::Timer t;
+        verbatim::utility::Timer t;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Retrieval of " << max << " CT: ";
