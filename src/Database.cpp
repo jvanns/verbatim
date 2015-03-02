@@ -19,7 +19,7 @@ Database::~Database()
 }
 
 void
-Database::store(const string &path)
+Database::open(const string &path)
 {
     traverser.scan(path);
 }

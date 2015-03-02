@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     Traverse t;
     Database db(t);
 
-    db.store(argv[1]);
+    db.open(argv[1]);
 
     return 0;
 }

@@ -20,7 +20,7 @@ class Database
         Database(Traverse &t);
         ~Database();
 
-        void store(const std::string &path);
+        void open(const std::string &path);
     private:
         /* Type definitions */
         class RegisterPath : public Traverse::Callback
