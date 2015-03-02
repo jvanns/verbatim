@@ -7,7 +7,6 @@ INSTALL ?= install
 
 BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/share/man
-PYTHON_SITELIB ?= $(PREFIX)/lib/python/site-packages
 
 CC ?= gcc
 CXX ?= g++
@@ -63,7 +62,6 @@ install:
 	# Directories
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)/man1
-	$(INSTALL) -d $(DESTDIR)$(PYTHON_SITELIB)
 	# Main program
 	$(INSTALL) -m 0755 verbatim $(DESTDIR)$(BINDIR)
 	# Man page
