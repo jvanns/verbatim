@@ -33,7 +33,8 @@ lmdb:
 	$(MAKE) -C sub/lmdb/libraries/liblmdb
 
 # Common utility dependencies
-COMMON_DEPS = src/utility/Timer.o
+COMMON_DEPS = src/utility/Timer.o \
+	src/utility/Hash.o
 
 # Main program dependencies
 src/Database.o: lmdb
