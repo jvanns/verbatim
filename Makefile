@@ -12,27 +12,33 @@ CC ?= gcc
 CXX ?= g++
 LDLIBS ?=
 LDFLAGS ?=
-CPPFLAGS += -MMD -MP -I./src/ -Wno-unused-local-typedefs
+CPPFLAGS += -MMD -MP -Isrc -Iext -Isub -Wno-unused-local-typedefs
 CXXFLAGS += -Wall -pedantic -Wno-long-long
 
 .PHONY: clean dist install all lmdb
 
 # Selective, per-module/unit additions
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
-src/tests/glim.o: CPPFLAGS += -Iext -Isub/lmdb/libraries/liblmdb
+src/Database.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
+src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
+src/tests/glim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
+
+verbatim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
+verbatim: LDLIBS += -llmdb -lboost_serialization
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 test_glim: LDLIBS += -llmdb -lboost_serialization
+
+# lmdb submodule
+lmdb:
+	$(MAKE) -C sub/lmdb/libraries/liblmdb
 
 # Common utility dependencies
 COMMON_DEPS = src/utility/Timer.o
 
 # Main program dependencies
+src/Database.o: lmdb
 VERBATIM_DEPS = src/Traverse.o \
 	src/Database.o
-
-# lmdb submodule
-lmdb:
-	$(MAKE) -C sub/lmdb/libraries/liblmdb
 
 # Tests
 test_delegate: src/tests/delegate.o
