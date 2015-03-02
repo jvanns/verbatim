@@ -33,7 +33,7 @@ lmdb:
 	$(MAKE) -C sub/lmdb/libraries/liblmdb
 
 # Common utility dependencies
-COMMON_DEPS = src/utility/Timer.o \
+UTILITY_DEPS = src/utility/Timer.o \
 	src/utility/Hash.o
 
 # Main program dependencies
@@ -49,7 +49,7 @@ test_traverse: src/tests/traverse.o src/Traverse.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 src/tests/glim.o: lmdb
-test_glim: src/tests/glim.o $(COMMON_DEPS)
+test_glim: src/tests/glim.o $(UTILITY_DEPS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Main program
