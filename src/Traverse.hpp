@@ -6,7 +6,7 @@
 #define VERBATIM_TRAVERSE_HPP
 
 // Signals
-#include "Signal.h"
+#include "signals/Signal.h"
 
 // libstdc++
 #include <string>
