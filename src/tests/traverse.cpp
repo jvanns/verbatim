@@ -42,7 +42,7 @@ class AggregateSize : public verbatim::Traverse::Callback
         ~AggregateSize()
         {
             cout << "Aggregate file size: "
-                 << size / static_cast<float>(1 << 20)
+                 << size / static_cast<double>(1UL << 20)
                  << " MB\n";
         }
 
