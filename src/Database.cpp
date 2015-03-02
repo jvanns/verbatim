@@ -5,6 +5,9 @@
 // Interface
 #include "Database.hpp"
 
+// verbatim
+#include "utility/Hash.hpp"
+
 // libc
 #include <assert.h>
 
@@ -36,7 +39,14 @@ Database::open(const string &path)
 void
 Database::add_path(const Traverse::Path &p)
 {
+    static const utility::Hash hasher;
+    const size_t key = hasher(p.name, strlen(p.name));
+    time_t modtime = p.info->st_mtime;
+
     assert(db != NULL); // open() must have been called first
+
+    if (!db->first(key, modtime))
+        db->add(key, modtime);
 }
 
 Database::RegisterPath::RegisterPath(Database &db) : database(db)
