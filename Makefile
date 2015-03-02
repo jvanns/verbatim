@@ -19,7 +19,7 @@ CXXFLAGS += -Wall -pedantic -Wno-long-long
 
 # Selective, per-module/unit additions
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
-src/tests/glim.o: CPPFLAGS += -Iext/glim -Isub/lmdb/libraries/liblmdb
+src/tests/glim.o: CPPFLAGS += -Iext -Isub/lmdb/libraries/liblmdb
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 test_glim: LDLIBS += -llmdb -lboost_serialization
 

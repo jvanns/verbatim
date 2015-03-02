@@ -6,7 +6,7 @@
 #include "utility/Timer.hpp"
 
 // libglim
-#include "mdb.hpp"
+#include "glim/mdb.hpp"
 
 // boost
 #include <boost/serialization/map.hpp>
