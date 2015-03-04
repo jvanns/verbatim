@@ -8,6 +8,9 @@
 // verbatim
 #include "utility/Hash.hpp"
 
+// libstdc++
+#include <boost/serialization/string.hpp>
+
 // libc
 #include <assert.h>
 
@@ -40,8 +43,8 @@ void
 Database::add_path(const Traverse::Path &p)
 {
     static const utility::Hash hasher;
-    const size_t key = hasher(p.name, strlen(p.name));
     time_t modtime = p.info->st_mtime;
+    const string key(p.name);
 
     assert(db != NULL); // open() must have been called first
 
