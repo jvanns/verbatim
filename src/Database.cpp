@@ -6,10 +6,8 @@
 #include "Database.hpp"
 
 // verbatim
+#include "Tag.hpp"
 #include "utility/Hash.hpp"
-
-// libstdc++
-#include <boost/serialization/string.hpp>
 
 // libc
 #include <assert.h>
@@ -42,15 +40,25 @@ Database::open(const string &path)
 void
 Database::add_path(const Traverse::Path &p)
 {
+    assert(db != NULL); // open() must have been called first
+
     if (S_ISREG(p.info->st_mode)) {
         static const utility::Hash hasher;
-        time_t modtime = p.info->st_mtime;
-        const string key(p.name);
 
-        assert(db != NULL); // open() must have been called first
+        /*
+         * Add or update a DB entry (a key-value pair)
+         */
+        Tag v;
+        const size_t k = hasher(p.name, strlen(p.name));
+        if (!db->first(k, v) || v.modified < p.info->st_mtime) {
+            const bool add = v.modified == 0;
 
-        if (!db->first(key, modtime))
-            db->add(key, modtime);
+            v.file = p.name;
+            v.modified = p.info->st_mtime;
+
+            if (add)
+                db->add(k, v);
+        }
     }
 }
 
