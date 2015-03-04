@@ -5,6 +5,11 @@
 #ifndef VERBATIM_TAG_HPP
 #define VERBATIM_TAG_HPP
 
+// boost serialization
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/string.hpp>
+
 // libstdc++
 #include <string>
 
@@ -23,6 +28,20 @@ struct Tag
                 genre;  // Apparent genre
 
     Tag() : modified(0) {}
+
+    template<typename Archive>
+    void
+    serialize(Archive &archive,
+              unsigned int /* version */)
+    {
+        archive
+            & modified
+            & file
+            & artist
+            & album
+            & title
+            & genre;
+    }
 };
 
 } // verbatim
