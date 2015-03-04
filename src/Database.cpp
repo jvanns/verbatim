@@ -55,6 +55,12 @@ Database::add_path(const Traverse::Path &p)
         Tag v;
         const size_t k = hasher(p.name, strlen(p.name));
         if (!db->first(k, v) || v.modified < p.info->st_mtime) {
+            /*
+             * TODO: Here is an ideal place to parallelise. Perhaps
+             * introduce a work queue where worker threads can pull of
+             * an item and execute the following. Only the db->add()
+             * need be protected.
+             */
             const bool add = v.modified == 0;
             const TagLib::FileRef file(p.name);
             const TagLib::Tag *tags = file.tag();
