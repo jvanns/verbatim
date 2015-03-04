@@ -42,14 +42,16 @@ Database::open(const string &path)
 void
 Database::add_path(const Traverse::Path &p)
 {
-    static const utility::Hash hasher;
-    time_t modtime = p.info->st_mtime;
-    const string key(p.name);
+    if (S_ISREG(p.info->st_mode)) {
+        static const utility::Hash hasher;
+        time_t modtime = p.info->st_mtime;
+        const string key(p.name);
 
-    assert(db != NULL); // open() must have been called first
+        assert(db != NULL); // open() must have been called first
 
-    if (!db->first(key, modtime))
-        db->add(key, modtime);
+        if (!db->first(key, modtime))
+            db->add(key, modtime);
+    }
 }
 
 Database::RegisterPath::RegisterPath(Database &db) : database(db)
