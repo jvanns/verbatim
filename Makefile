@@ -35,6 +35,7 @@ lmdb:
 
 # Common utility dependencies
 UTILITY_OBJS = src/utility/Timer.o \
+	src/utility/Exception.o \
 	src/utility/Hash.o
 
 # Main program dependencies
