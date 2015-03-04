@@ -14,6 +14,9 @@ namespace utility {
 
 struct Hash
 {
+    Hash() {};
+    ~Hash() {};
+
     size_t operator() (const char *s, size_t len) const;
     typedef size_t (*Hasher)(const char*, size_t);
     static const Hasher hashers[2];
