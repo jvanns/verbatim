@@ -34,12 +34,12 @@ lmdb:
 	$(MAKE) -C sub/lmdb/libraries/liblmdb
 
 # Common utility dependencies
-UTILITY_DEPS = src/utility/Timer.o \
+UTILITY_OBJS = src/utility/Timer.o \
 	src/utility/Hash.o
 
 # Main program dependencies
 src/Database.o: lmdb
-VERBATIM_DEPS = src/Traverse.o \
+VERBATIM_OBJS = src/Traverse.o \
 	src/Database.o
 
 # Tests
@@ -50,11 +50,11 @@ test_traverse: src/tests/traverse.o src/Traverse.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 src/tests/glim.o: lmdb
-test_glim: src/tests/glim.o $(UTILITY_DEPS)
+test_glim: src/tests/glim.o $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Main program
-verbatim: src/verbatim.o $(VERBATIM_DEPS) $(UTILITY_DEPS)
+verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Phony targets
