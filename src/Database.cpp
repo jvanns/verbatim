@@ -46,39 +46,41 @@ Database::add_path(const Traverse::Path &p)
 {
     assert(db != NULL); // open() must have been called first
 
-    if (S_ISREG(p.info->st_mode)) {
-        static const utility::Hash hasher;
+    if (!S_ISREG(p.info->st_mode))
+        return;
 
-        /*
-         * Add or update a DB entry (a key-value pair)
-         */
-        Tag v;
-        const size_t k = hasher(p.name, strlen(p.name));
-        if (!db->first(k, v) || v.modified < p.info->st_mtime) {
-            /*
-             * TODO: Here is an ideal place to parallelise. Perhaps
-             * introduce a work queue where worker threads can pull of
-             * an item and execute the following. Only the db->add()
-             * need be protected.
-             */
-            const bool add = v.modified == 0;
-            const TagLib::FileRef file(p.name);
-            const TagLib::Tag *tags = file.tag();
+    static const utility::Hash hasher;
 
-            if (!tags)
-                return; // Not a valid auto file with tags?
+    /*
+     * Add or update a DB entry (a key-value pair)
+     */
+    Tag v;
+    const size_t k = hasher(p.name, strlen(p.name));
+    if (db->first(k, v) && v.modified >= p.info->st_mtime)
+        return;
 
-            v.file = p.name;
-            v.modified = p.info->st_mtime;
-            v.genre = tags->genre().to8Bit();
-            v.album = tags->album().to8Bit();
-            v.title = tags->title().to8Bit();
-            v.artist = tags->artist().to8Bit();
+    /*
+     * TODO: Here is an ideal place to parallelise. Perhaps
+     * introduce a work queue where worker threads can pull of
+     * an item and execute the following. Only the db->add()
+     * need be protected.
+     */
+    const bool add = v.modified == 0;
+    const TagLib::FileRef file(p.name);
+    const TagLib::Tag *tags = file.tag();
 
-            if (add)
-                db->add(k, v);
-        }
-    }
+    if (!tags)
+        return; // Not a valid auto file with tags?
+
+    v.file = p.name;
+    v.modified = p.info->st_mtime;
+    v.genre = tags->genre().to8Bit();
+    v.album = tags->album().to8Bit();
+    v.title = tags->title().to8Bit();
+    v.artist = tags->artist().to8Bit();
+
+    if (add)
+        db->add(k, v);
 }
 
 Database::RegisterPath::RegisterPath(Database &db) : database(db)
