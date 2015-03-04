@@ -9,6 +9,10 @@
 #include "Tag.hpp"
 #include "utility/Hash.hpp"
 
+// Taglib
+#include <taglib/tag.h>
+#include <taglib/fileref.h>
+
 // libc
 #include <assert.h>
 
@@ -52,9 +56,18 @@ Database::add_path(const Traverse::Path &p)
         const size_t k = hasher(p.name, strlen(p.name));
         if (!db->first(k, v) || v.modified < p.info->st_mtime) {
             const bool add = v.modified == 0;
+            const TagLib::FileRef file(p.name);
+            const TagLib::Tag *tags = file.tag();
+
+            if (!tags)
+                return; // Not a valid auto file with tags?
 
             v.file = p.name;
             v.modified = p.info->st_mtime;
+            v.genre = tags->genre().to8Bit();
+            v.album = tags->album().to8Bit();
+            v.title = tags->title().to8Bit();
+            v.artist = tags->artist().to8Bit();
 
             if (add)
                 db->add(k, v);
