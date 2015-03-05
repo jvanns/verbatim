@@ -3,7 +3,7 @@
  */
 
 // verbatim
-#include "Database.hpp"
+#include "Context.hpp"
 #include "utility/tools.hpp"
 
 // libstdc++
@@ -20,8 +20,7 @@ using std::endl;
 using std::exception;
 
 // verbatim
-using verbatim::Traverse;
-using verbatim::Database;
+using verbatim::Context;
 using verbatim::utility::str2int;
 
 namespace {
@@ -93,14 +92,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Traverse t;
-    Database db(t);
-
     db_path = argv[optind++];
     music_path = argv[optind];
 
-    db.open(db_path);
-    t.scan(music_path);
+    Context c(threads);
+    c.database().open(db_path);
+    c.traverser().scan(music_path);
 
     return 0;
 }
