@@ -12,6 +12,9 @@
 // libglim
 #include "glim/mdb.hpp"
 
+// boost
+#include <boost/thread/mutex.hpp>
+
 // libstdc++
 #include <string>
 
@@ -40,6 +43,7 @@ class Database
 
         /* Attributes/member variables */
         glim::Mdb *db;
+        boost::mutex mutex; // Synchronise access to db
         Traverse &traverser;
         RegisterPath new_path;
         utility::ThreadPool &threads;

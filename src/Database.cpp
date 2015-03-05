@@ -18,11 +18,61 @@
 
 using std::string;
 
-namespace verbatim {
-   
-using utility::ThreadPool;
+namespace {
 
-Database::Database(Traverse &t, ThreadPool &tp) :
+struct GrabTag {
+    GrabTag(glim::Mdb &d,
+            boost::mutex &m,
+            const time_t f,
+            const string p) :
+        db(d),
+        mutex(m),
+        modified(f),
+        pathname(p)
+    {
+    }
+
+    void operator()()
+    {
+        verbatim::Tag v;
+        const char *filename = pathname.c_str();
+        static const verbatim::utility::Hash hasher;
+        const size_t k = hasher(filename, pathname.size());
+
+        if (db.first(k, v) && v.modified >= modified)
+            return; // Assume entry exists and is untouched
+
+        const bool add = v.modified == 0;
+        const TagLib::FileRef file(filename);
+        const TagLib::Tag *tags = file.tag();
+
+        if (!tags)
+            return; // Not a valid auto file with tags?
+
+        v.file = pathname;
+        v.modified = modified;
+        v.genre = tags->genre().to8Bit();
+        v.album = tags->album().to8Bit();
+        v.title = tags->title().to8Bit();
+        v.artist = tags->artist().to8Bit();
+
+        if (add) {
+            boost::lock_guard<boost::mutex> guard(mutex);
+            db.add(k, v);
+        }
+    }
+
+    glim::Mdb &db;
+    boost::mutex &mutex;
+    const time_t modified;
+    const string pathname;
+};
+
+} // anonymous
+
+namespace verbatim {
+ 
+Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(NULL),
     traverser(t),
     new_path(*this),
@@ -52,41 +102,13 @@ Database::add_path(const Traverse::Path &p)
 {
     assert(db != NULL); // open() must have been called first
 
-    if (!S_ISREG(p.info->st_mode))
-        return;
-
-    static const utility::Hash hasher;
-
     /*
      * Add or update a DB entry (a key-value pair)
      */
-    Tag v;
-    const size_t k = hasher(p.name, strlen(p.name));
-    if (db->first(k, v) && v.modified >= p.info->st_mtime)
-        return;
-
-    /*
-     * TODO: Here is an ideal place to parallelise. Perhaps
-     * introduce a work queue where worker threads can pull of
-     * an item and execute the following. Only the db->add()
-     * need be protected.
-     */
-    const bool add = v.modified == 0;
-    const TagLib::FileRef file(p.name);
-    const TagLib::Tag *tags = file.tag();
-
-    if (!tags)
-        return; // Not a valid auto file with tags?
-
-    v.file = p.name;
-    v.modified = p.info->st_mtime;
-    v.genre = tags->genre().to8Bit();
-    v.album = tags->album().to8Bit();
-    v.title = tags->title().to8Bit();
-    v.artist = tags->artist().to8Bit();
-
-    if (add)
-        db->add(k, v);
+    if (S_ISREG(p.info->st_mode)) {
+        GrabTag gt(*db, mutex, p.info->st_mtime, p.name);
+        threads.submit(gt);
+    }
 }
 
 Database::RegisterPath::RegisterPath(Database &db) : database(db)
