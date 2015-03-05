@@ -20,6 +20,7 @@ CXXFLAGS += -Wall -pedantic -Wno-long-long
 # Selective, per-module/unit additions
 src/utility/Hash.o: CXXFLAGS += -O3
 src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
+src/Context.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/Database.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/tests/glim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
@@ -42,7 +43,8 @@ UTILITY_OBJS = src/utility/Timer.o \
 # Main program dependencies
 src/Database.o: lmdb
 VERBATIM_OBJS = src/Traverse.o \
-	src/Database.o
+	src/Database.o \
+	src/Context.o
 
 # Tests
 test_delegate: src/tests/delegate.o
