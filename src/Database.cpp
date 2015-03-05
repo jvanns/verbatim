@@ -19,8 +19,14 @@
 using std::string;
 
 namespace verbatim {
+   
+using utility::ThreadPool;
 
-Database::Database(Traverse &t) : db(NULL), traverser(t), new_path(*this)
+Database::Database(Traverse &t, ThreadPool &tp) :
+    db(NULL),
+    traverser(t),
+    new_path(*this),
+    threads(tp)
 {
     traverser.register_callback(&new_path);
 }

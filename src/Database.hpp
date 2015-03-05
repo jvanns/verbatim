@@ -7,6 +7,7 @@
 
 // verbatim
 #include "Traverse.hpp"
+#include "utility/ThreadPool.hpp"
 
 // libglim
 #include "glim/mdb.hpp"
@@ -20,7 +21,7 @@ class Database
 {
     public:
         /* Methods/Member functions */
-        Database(Traverse &t);
+        Database(Traverse &t, utility::ThreadPool &tp);
         ~Database();
 
         void open(const std::string &path);
@@ -41,6 +42,7 @@ class Database
         glim::Mdb *db;
         Traverse &traverser;
         RegisterPath new_path;
+        utility::ThreadPool &threads;
 
         /* Methods/Member functions */
         void add_path(const Traverse::Path &p);
