@@ -29,7 +29,7 @@ test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 test_glim: LDLIBS += -llmdb -lboost_serialization
 
 verbatim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-verbatim: LDLIBS += -llmdb -lboost_serialization -ltag
+verbatim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag
 
 # lmdb submodule
 lmdb:
