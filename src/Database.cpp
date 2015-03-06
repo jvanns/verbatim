@@ -110,7 +110,7 @@ Database::add_path(const Traverse::Path &p)
      * Add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        GrabTag gt(*db, mutex, p.info->st_mtime, p.name);
+        const GrabTag gt(*db, mutex, p.info->st_mtime, p.name);
         threads.submit(gt);
     }
 }
