@@ -27,7 +27,7 @@ src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/tests/glim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-test_glim: LDLIBS += -llmdb -lboost_serialization
+test_glim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system
 
 verbatim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 verbatim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag
