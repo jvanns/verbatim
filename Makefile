@@ -15,6 +15,7 @@ LDFLAGS ?=
 CPPFLAGS += -MMD -MP -Isrc -Iext -Isub -Wno-unused-local-typedefs
 CXXFLAGS += -Wall -pedantic -Wno-long-long
 
+# Phony targets
 .PHONY: clean dist install all lmdb
 
 # Selective, per-module/unit additions
@@ -62,7 +63,6 @@ test_glim: src/tests/glim.o $(UTILITY_OBJS)
 verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-# Phony targets
 all: lmdb test_delegate test_traverse test_glim verbatim
 
 pkg:
