@@ -42,7 +42,6 @@ struct GrabTag {
         if (db.first(k, v) && v.modified >= modified)
             return; // Assume entry exists and is untouched
 
-        const bool add = v.modified == 0;
         const TagLib::FileRef file(filename);
         const TagLib::Tag *tags = file.tag();
 
@@ -56,7 +55,7 @@ struct GrabTag {
         v.title = tags->title().to8Bit();
         v.artist = tags->artist().to8Bit();
 
-        if (add) {
+        {
             /*
              * TODO: Investigate whether the lock guard is really needed
              * here. It looks, at a glance, as though the underlying LMDB
