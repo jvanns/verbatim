@@ -1,0 +1,8 @@
+--verbose
+--track-fds=yes
+--trace-children=yes
+--log-file=/tmp/valgrind.log
+--memcheck:leak-check=full
+--memcheck:track-origins=yes
+--memcheck:show-reachable=yes
+--memcheck:undef-value-errors=yes
