@@ -57,6 +57,11 @@ struct GrabTag {
         v.artist = tags->artist().to8Bit();
 
         if (add) {
+            /*
+             * TODO: Investigate whether the lock guard is really needed
+             * here. It looks, at a glance, as though the underlying LMDB
+             * database is thread-safe (MDB C, not the GLIM C++ wrapper).
+             */
             boost::lock_guard<boost::mutex> guard(mutex);
             db.add(k, v);
         }
