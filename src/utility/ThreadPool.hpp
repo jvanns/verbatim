@@ -34,7 +34,7 @@ class ThreadPool {
         ThreadPool(size_t);
         ~ThreadPool();
 
-        template<typename Work> void submit(Work w);
+        template<typename Work> void submit(const Work &w);
     private:
         /* Member attributes */
         boost::asio::io_service service;
@@ -49,7 +49,7 @@ class ThreadPool {
  * Post work to the queue
  */
 template<typename Work>
-void ThreadPool::submit(Work w)
+void ThreadPool::submit(const Work &w)
 {
     service.post(w);
 }
