@@ -39,7 +39,7 @@ struct GrabTag {
         static const verbatim::utility::Hash hasher;
         const size_t k = hasher(filename, pathname.size());
 
-        if (db.first(k, v) && v.modified >= modified)
+        if (db.first(k, v) && v.modified == modified)
             return; // Assume entry exists and is untouched
 
         const TagLib::FileRef file(filename);
