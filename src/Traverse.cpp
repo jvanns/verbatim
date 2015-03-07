@@ -5,6 +5,9 @@
 // Interface
 #include "Traverse.hpp"
 
+// verbatim
+#include "utility/Timer.hpp"
+
 // libc
 #include <ftw.h>
 #include <assert.h>
@@ -70,10 +73,16 @@ Traverse::register_callback(Callback *callback)
     observers.Connect(callback, &Callback::operator());
 }
 
-void
+size_t
 Traverse::scan(const string &path)
 {
+    utility::Timer t;
+
+    t.start();
     nftw(path.c_str(), &C::nftw_callback, 256, 0);
+    t.stop();
+
+    return t.elapsed();
 }
 
 } // verbatim

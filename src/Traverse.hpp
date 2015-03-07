@@ -40,7 +40,7 @@ class Traverse
         ~Traverse();
 
         void register_callback(Callback *callback);
-        void scan(const std::string &path);
+        size_t scan(const std::string &path);
     private:
         /* Attributes/member variables */
         static Traverse *traverser; // Required for libc func ptr callback :(
