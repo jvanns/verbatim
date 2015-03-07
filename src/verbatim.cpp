@@ -5,6 +5,7 @@
 // verbatim
 #include "Context.hpp"
 #include "utility/tools.hpp"
+#include "utility/Timer.hpp"
 
 // libstdc++
 #include <iostream>
@@ -21,6 +22,7 @@ using std::exception;
 
 // verbatim
 using verbatim::Context;
+using verbatim::utility::Timer;
 using verbatim::utility::str2int;
 
 namespace {
@@ -96,8 +98,15 @@ int main(int argc, char *argv[])
     music_path = argv[optind];
 
     Context c(threads);
+    size_t duration = 0;
+
     c.database().open(db_path);
-    c.traverser().scan(music_path);
+    duration = c.traverser().scan(music_path);
+
+    if (verbose)
+        cout << "Scan took: "
+             << duration / static_cast<double>(Timer::precision())
+             << "s\n";
 
     return 0;
 }
