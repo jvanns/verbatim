@@ -26,6 +26,8 @@ src/Database.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/tests/glim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 
+test_traverse: LDLIBS += -lboost_thread -lboost_system
+
 test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 test_glim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system
 
@@ -52,7 +54,7 @@ VERBATIM_OBJS = src/Traverse.o \
 test_delegate: src/tests/delegate.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-test_traverse: src/tests/traverse.o src/Traverse.o
+test_traverse: src/tests/traverse.o src/Traverse.o $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 src/tests/glim.o: lmdb
