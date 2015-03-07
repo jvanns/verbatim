@@ -21,7 +21,8 @@ class Timer
 
         void start();
         void stop();
-        size_t elapsed() const; // Returns nanoseconds
+        size_t elapsed() const;
+        static size_t precision(); // Returns the precision (eg nanoseconds)
     private:
         /* Member variables/attributes */
         bool running;

@@ -18,7 +18,7 @@ now()
 inline size_t
 diff(const timespec &from, const timespec &to)
 {
-    return ((from.tv_sec - to.tv_sec) * 1000000000UL)
+    return ((from.tv_sec - to.tv_sec) * verbatim::utility::Timer::precision())
           + (from.tv_nsec - to.tv_nsec);
 }
 
@@ -56,6 +56,12 @@ Timer::elapsed() const
         return diff(stopped, started);
 
     return diff(now(), started);
+}
+
+size_t
+Timer::precision()
+{
+    return 1000000000UL;
 }
 
 } // utility
