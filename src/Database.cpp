@@ -22,11 +22,9 @@ namespace {
 
 struct GrabTag {
     GrabTag(glim::Mdb &d,
-            boost::mutex &m,
             const time_t f,
             const string p) :
         db(d),
-        mutex(m),
         modified(f),
         pathname(p)
     {
@@ -55,19 +53,10 @@ struct GrabTag {
         v.title = tags->title().to8Bit();
         v.artist = tags->artist().to8Bit();
 
-        {
-            /*
-             * TODO: Investigate whether the lock guard is really needed
-             * here. It looks, at a glance, as though the underlying LMDB
-             * database is thread-safe (MDB C, not the GLIM C++ wrapper).
-             */
-            boost::lock_guard<boost::mutex> guard(mutex);
-            db.add(k, v);
-        }
+        db.add(k, v);
     }
 
     glim::Mdb &db;
-    boost::mutex &mutex;
     const time_t modified;
     const string pathname;
 };
@@ -110,7 +99,7 @@ Database::add_path(const Traverse::Path &p)
      * Add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        const GrabTag gt(*db, mutex, p.info->st_mtime, p.name);
+        const GrabTag gt(*db, p.info->st_mtime, p.name);
         threads.submit(gt);
     }
 }
