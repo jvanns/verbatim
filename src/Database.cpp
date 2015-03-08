@@ -34,8 +34,7 @@ struct GrabTag {
     {
         verbatim::Tag v;
         const char *filename = pathname.c_str();
-        static const verbatim::utility::Hash hasher;
-        const size_t k = hasher(filename, pathname.size());
+        const size_t k = GrabTag::hasher(filename, pathname.size());
 
         if (db.first(k, v) && v.modified == modified)
             return; // Assume entry exists and is untouched
@@ -59,7 +58,10 @@ struct GrabTag {
     glim::Mdb &db;
     const time_t modified;
     const string pathname;
+    static const verbatim::utility::Hash hasher;
 };
+
+const verbatim::utility::Hash GrabTag::hasher = verbatim::utility::Hash();
 
 } // anonymous
 
