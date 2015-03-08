@@ -39,7 +39,7 @@ struct GrabTag {
         if (db.first(k, v) && v.modified == modified)
             return; // Assume entry exists and is untouched
 
-        const TagLib::FileRef file(filename);
+        const TagLib::FileRef file(filename, false);
         const TagLib::Tag *tags = file.tag();
 
         if (!tags)
