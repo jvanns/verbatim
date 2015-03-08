@@ -20,14 +20,15 @@ class Context
     public:
         /* Methods/Member functions */
         Context(size_t concurrency);
+        ~Context();
 
-        inline Traverse& traverser() { return tv; }
-        inline Database& database()  { return db; }
+        inline Traverse& traverser() { return *tv; }
+        inline Database& database()  { return *db; }
     private:
         /* Attributes/member variables */
-        utility::ThreadPool threads;
-        Traverse tv;
-        Database db;
+        utility::ThreadPool *threads;
+        Traverse *tv;
+        Database *db;
 };
 
 } // verbatim

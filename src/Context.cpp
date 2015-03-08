@@ -7,8 +7,21 @@
 
 namespace verbatim {
 
-Context::Context(size_t concurrency) : threads(concurrency), db(tv, threads)
+Context::Context(size_t concurrency) : threads(NULL), tv(NULL), db(NULL)
 {
+    tv = new Traverse();
+    threads = new utility::ThreadPool(concurrency);
+    db = new Database(*tv, *threads);
+}
+
+Context::~Context()
+{
+    /*
+     * Specific order. Do not change.
+     */
+    delete threads;
+    delete db;
+    delete tv;
 }
 
 } // verbatim
