@@ -23,7 +23,7 @@ namespace {
 struct GrabTag {
     GrabTag(glim::Mdb &d,
             const time_t f,
-            const string p) :
+            const string &p) :
         db(d),
         modified(f),
         pathname(p)
