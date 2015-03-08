@@ -43,7 +43,7 @@ struct GrabTag {
         const TagLib::Tag *tags = file.tag();
 
         if (!tags)
-            return; // Not a valid auto file with tags?
+            return; // Not a valid audio file with tags?
 
         v.file = pathname;
         v.modified = modified;
