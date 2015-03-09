@@ -17,6 +17,7 @@
 #include <assert.h>
 
 using std::string;
+using std::ostream;
 
 namespace {
 
@@ -90,6 +91,36 @@ Database::open(const string &path)
     assert(db == NULL);
     db = new glim::Mdb(path.c_str(), 256, "verbatim", 0, true, 0600);
     assert(db != NULL);
+}
+
+size_t
+Database::list_entries(ostream &stream) const
+{
+    assert(db != NULL); // open() must have been called first
+
+    verbatim::Tag value;
+    size_t key = 0, count = 0;
+    glim::Mdb::Iterator i(db->begin());
+    const glim::Mdb::Iterator j(db->end());
+
+    while (i != j) {
+        i->getKey(key);
+        i->getValue(value);
+
+        stream <<
+            key << '\t' <<
+            value.file << '\t' <<
+            value.modified << '\t' <<
+            value.genre << '\t' <<
+            value.artist << '\t' <<
+            value.album << '\t' <<
+            value.title << '\n';
+
+        ++count;
+        ++i;
+    }
+
+    return count;
 }
 
 void

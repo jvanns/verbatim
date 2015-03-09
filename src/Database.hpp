@@ -14,6 +14,7 @@
 
 // libstdc++
 #include <string>
+#include <iostream>
 
 namespace verbatim {
 
@@ -25,6 +26,7 @@ class Database
         ~Database();
 
         void open(const std::string &path);
+        size_t list_entries(std::ostream &stream) const;
     private:
         /* Type definitions */
         class RegisterPath : public Traverse::Callback
