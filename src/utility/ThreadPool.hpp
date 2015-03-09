@@ -31,7 +31,7 @@ class Worker {
 class ThreadPool {
     public:
         /* Member functions */
-        ThreadPool(size_t);
+        ThreadPool(size_t threads);
         ~ThreadPool();
 
         void restart(); // Won't restart, unless stopped
