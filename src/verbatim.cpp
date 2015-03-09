@@ -45,17 +45,12 @@ print_usage(const char *program_name)
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
-        print_usage(argv[0]);
-        return 1;
-    }
-
     /*
      * Default values for optional flags - read help message in print_usage()!
      */
     bool verbose = false;
     uint16_t threads = 2;
-    char *db_path = NULL, *music_path = NULL;
+    const char *db_path = NULL, *music_path = NULL;
 
     try {
         int option_index, c = 0;
