@@ -4,7 +4,6 @@
 
 // verbatim
 #include "Context.hpp"
-#include "utility/tools.hpp"
 
 // libstdc++
 #include <iostream>
@@ -21,7 +20,6 @@ using std::exception;
 
 // verbatim
 using verbatim::Context;
-using verbatim::utility::str2int;
 
 namespace {
 
@@ -34,9 +32,7 @@ print_usage(const char *program_name)
          << "-h/--help             "
          << "Print this help message you're reading, then terminate\n"
          << "-v/--verbose          "
-         << "Print noisy verbose messages to stdout (false)\n"
-         << "-c/--concurrency <N>  "
-         << "No. of worker threads to run in parallel (2)\n";
+         << "Print noisy verbose messages to stdout (false)\n";
 }
 
 } // anonymous
@@ -47,16 +43,14 @@ int main(int argc, char *argv[])
      * Default values for optional flags - read help message in print_usage()!
      */
     bool verbose = false;
-    uint16_t threads = 2;
     const char *db_path = NULL;
 
     try {
         int option_index, c = 0;
-        const char *short_options = "+hvc:";
+        const char *short_options = "+hv";
         struct option const long_options[] = {
             {"help", 0, NULL, 'h'},
             {"verbose", 0, NULL, 'v'},
-            {"concurrency", 1, NULL, 'c'},
             {NULL, 0, NULL, 0}
         };
 
@@ -66,11 +60,6 @@ int main(int argc, char *argv[])
             switch (c) {
                 case 'v':
                     verbose = true;
-                    break;
-                case 'c': {
-                        static const uint16_t min = 1, max = 256;
-                        threads = str2int<uint16_t>(optarg, &min, &max);
-                    }
                     break;
                 case 'h':
                     print_usage(argv[0]);
@@ -89,8 +78,8 @@ int main(int argc, char *argv[])
 
     db_path = argv[optind++];
 
+    Context c(0);
     size_t count = 0;
-    Context c(threads);
 
     c.database().open(db_path);
     count = c.database().list_entries(cout);
