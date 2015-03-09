@@ -34,9 +34,11 @@ class ThreadPool {
         ThreadPool(size_t);
         ~ThreadPool();
 
+        void stop(); // Will block
         template<typename Work> void submit(const Work &w);
     private:
         /* Member attributes */
+        bool running;
         boost::asio::io_service service;
         boost::asio::io_service::work work;
         std::vector<std::unique_ptr<boost::thread> > workers;
