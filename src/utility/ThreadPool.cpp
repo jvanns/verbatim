@@ -5,6 +5,9 @@
 // Interface
 #include "ThreadPool.hpp"
 
+// libc
+#include <assert.h>
+
 using std::unique_ptr;
 using boost::thread;
 
@@ -24,16 +27,27 @@ Worker::operator()()
 ThreadPool::ThreadPool(size_t threads) : running(false), work(service)
 {
     workers.reserve(threads);
-
-    for (size_t i = 0 ; i < threads ; ++i)
-        workers.push_back(unique_ptr<thread>(new thread(Worker(*this))));
-
-    running = true;
+    start(threads);
 }
  
 ThreadPool::~ThreadPool()
 {
     stop();
+}
+
+void
+ThreadPool::restart()
+{
+    if (running)
+        return;
+
+    assert(!workers.empty());
+
+    service.reset();
+    for (size_t i = 0 ; i < workers.size() ; ++i)
+        workers[i] = unique_ptr<thread>(new thread(Worker(*this)));
+
+    running = true;
 }
 
 void
@@ -66,6 +80,20 @@ ThreadPool::wait()
     service.stop();
 
     running = false;
+}
+
+void
+ThreadPool::start(size_t threads)
+{
+    if (running)
+        return;
+
+    assert(workers.empty());
+
+    for (size_t i = 0 ; i < threads ; ++i)
+        workers.push_back(unique_ptr<thread>(new thread(Worker(*this))));
+
+    running = threads > 0;
 }
 
 } // utility

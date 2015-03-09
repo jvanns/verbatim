@@ -34,10 +34,14 @@ class ThreadPool {
         ThreadPool(size_t);
         ~ThreadPool();
 
+        void restart(); // Won't restart, unless stopped
         void stop(); // Will block
         void wait(); // Will block
         template<typename Work> void submit(const Work &w);
     private:
+        /* Member functions */
+        void start(size_t threads);
+
         /* Member attributes */
         bool running;
         boost::asio::io_service service;
