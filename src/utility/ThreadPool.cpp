@@ -50,6 +50,24 @@ ThreadPool::stop()
     running = false;
 }
 
+void
+ThreadPool::wait()
+{
+    if (!running)
+        return;
+
+    /*
+     * Wait until io_service.run() has no more work to do - the
+     * threads will then return of their own accord but in any order.
+     */
+    for (size_t i = 0 ; i < workers.size() ; ++i)
+        workers[i]->join();
+
+    service.stop();
+
+    running = false;
+}
+
 } // utility
 } // verbatim
 

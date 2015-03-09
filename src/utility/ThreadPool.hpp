@@ -35,6 +35,7 @@ class ThreadPool {
         ~ThreadPool();
 
         void stop(); // Will block
+        void wait(); // Will block
         template<typename Work> void submit(const Work &w);
     private:
         /* Member attributes */
