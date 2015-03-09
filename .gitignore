@@ -1,4 +1,5 @@
 verbatim
+verbatim-cat
 test_*
 *.pyc
 *.pyo

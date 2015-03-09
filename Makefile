@@ -24,6 +24,7 @@ src/Traverse.o: CPPFLAGS += -D_FILE_OFFSET_BITS=64
 src/Context.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/Database.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
+src/verbatim-cat.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/tests/glim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 
 test_traverse: LDLIBS += -lboost_thread -lboost_system
@@ -33,6 +34,9 @@ test_glim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system
 
 verbatim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 verbatim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag
+
+verbatim-cat: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
+verbatim-cat: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag
 
 # lmdb submodule
 lmdb:
@@ -61,11 +65,14 @@ src/tests/glim.o: lmdb
 test_glim: src/tests/glim.o $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-# Main program
+# Main programs
 verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-all: lmdb test_delegate test_traverse test_glim verbatim
+verbatim-cat: src/verbatim-cat.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+all: lmdb test_delegate test_traverse test_glim verbatim verbatim-cat
 
 pkg:
 	mkdir -p pkg
@@ -83,7 +90,7 @@ install:
 	$(INSTALL) -m 0644 docs/*.1 $(DESTDIR)$(MANDIR)/man1
 
 clean:
-	-rm -f verbatim test_* pkg/$(NAME)-*.tar.gz
+	-rm -f verbatim verbatim-cat test_* pkg/$(NAME)-*.tar.gz
 	-find `pwd` -depth -type f -name '*.[od]' -prune \
 		\! -path "`pwd`[/].git/*" | xargs rm -f
 	$(MAKE) -C sub/lmdb/libraries/liblmdb clean
