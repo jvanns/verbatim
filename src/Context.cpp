@@ -19,6 +19,9 @@ Context::~Context()
     /*
      * Specific order. Do not change.
      */
+    if (threads)
+        threads->wait();
+
     delete threads;
     delete db;
     delete tv;
