@@ -45,7 +45,7 @@ class ThreadPool {
         /* Member attributes */
         bool running;
         boost::asio::io_service service;
-        boost::asio::io_service::work work;
+        boost::asio::io_service::work *work;
         std::vector<std::unique_ptr<boost::thread> > workers;
 
         /* Friend class declarations */

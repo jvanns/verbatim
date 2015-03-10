@@ -24,7 +24,9 @@ Worker::operator()()
 }
  
 // the constructor just launches some amount of workers
-ThreadPool::ThreadPool(size_t threads) : running(false), work(service)
+ThreadPool::ThreadPool(size_t threads) :
+    running(false),
+    work(new boost::asio::io_service::work(service))
 {
     workers.reserve(threads);
     start(threads);
@@ -42,8 +44,11 @@ ThreadPool::restart()
         return;
 
     assert(!workers.empty());
+    assert(!work);
 
     service.reset();
+    work = new boost::asio::io_service::work(service);
+
     for (size_t i = 0 ; i < workers.size() ; ++i)
         workers[i] = unique_ptr<thread>(new thread(Worker(*this)));
 
@@ -61,6 +66,10 @@ ThreadPool::stop()
     for (size_t i = 0 ; i < workers.size() ; ++i)
         workers[i]->join();
 
+    assert(work);
+    delete work;
+    work = NULL;
+
     running = false;
 }
 
@@ -74,6 +83,10 @@ ThreadPool::wait()
      * Wait until io_service.run() has no more work to do - the
      * threads will then return of their own accord but in any order.
      */
+    assert(work);
+    delete work;
+    work = NULL;
+
     for (size_t i = 0 ; i < workers.size() ; ++i)
         workers[i]->join();
 
