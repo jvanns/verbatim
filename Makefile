@@ -94,7 +94,7 @@ install:
 	$(INSTALL) -m 0644 docs/*.1 $(DESTDIR)$(MANDIR)/man1
 
 clean:
-	-rm -f verbatim verbatim-cat test_* pkg/$(NAME)-*.tar.gz
+	-rm -f verbatim verbatim-cat test_* suffix_array pkg/$(NAME)-*.tar.gz
 	-find `pwd` -depth -type f -name '*.[od]' -prune \
 		\! -path "`pwd`[/].git/*" | xargs rm -f
 	$(MAKE) -C sub/lmdb/libraries/liblmdb clean
