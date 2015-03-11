@@ -1,3 +1,7 @@
+/*
+ * vim: set smartindent autoindent expandtab tabstop=4 shiftwidth=4:
+ */
+
 // libstdc++
 #include <limits>
 #include <vector>
