@@ -20,8 +20,8 @@ using std::ostream;
 using std::lower_bound;
 using std::numeric_limits;
 
-typedef uint32_t Integer;
-static const uint8_t digits = numeric_limits<Integer>::digits;
+typedef size_t Integer;
+static const size_t digits = numeric_limits<Integer>::digits;
 
 struct Suffix
 {
