@@ -75,7 +75,8 @@ verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 verbatim-cat: src/verbatim-cat.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-all: lmdb test_delegate test_traverse test_glim verbatim verbatim-cat
+tests: test_glim test_delegate test_traverse suffix-array
+all: tests verbatim verbatim-cat
 
 pkg:
 	mkdir -p pkg
