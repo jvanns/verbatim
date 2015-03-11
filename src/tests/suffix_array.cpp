@@ -117,7 +117,7 @@ compute_suffix_array(const Integer n)
 int main(int argc, char *argv[])
 {
     while(++argv && *argv) {
-        const Integer n = static_cast<Integer>(strtoul(*argv, NULL, 10));
+        const Integer n = reinterpret_cast<Integer>(*argv);
         compute_suffix_array(n);
     }
 
