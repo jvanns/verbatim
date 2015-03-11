@@ -5,6 +5,7 @@
 // libstdc++
 #include <limits>
 #include <vector>
+#include <string>
 #include <iostream>
 #include <algorithm>
 
@@ -16,6 +17,7 @@ using std::cout;
 using std::endl;
 using std::sort;
 using std::vector;
+using std::string;
 using std::ostream;
 using std::lower_bound;
 using std::numeric_limits;
@@ -73,9 +75,17 @@ lzc(Integer n) // Leading Zero Count
 
 ostream& operator<< (ostream &os, const Suffix &s)
 {
-    os << s.index << '\t';
+    const string x(reinterpret_cast<const char*>(&s.n), digits / 8);
+
     print_as_bin(os, s.n);
-    os << '\t' << s.lcp;
+    os
+        << '\t'
+        << s.index
+        << '\t'
+        << x
+        << '\t'
+        << s.lcp;
+
     return os;
 }
 
