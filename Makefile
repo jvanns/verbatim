@@ -65,7 +65,7 @@ src/tests/glim.o: lmdb
 test_glim: src/tests/glim.o $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-suffix-array: src/tests/suffix-array.o
+suffix_array: src/tests/suffix_array.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Main programs
@@ -75,7 +75,7 @@ verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 verbatim-cat: src/verbatim-cat.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-tests: test_glim test_delegate test_traverse suffix-array
+tests: test_glim test_delegate test_traverse suffix_array
 all: tests verbatim verbatim-cat
 
 pkg:
