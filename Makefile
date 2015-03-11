@@ -65,6 +65,9 @@ src/tests/glim.o: lmdb
 test_glim: src/tests/glim.o $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
+suffix-array: src/tests/suffix-array.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
 # Main programs
 verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
