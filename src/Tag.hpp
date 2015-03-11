@@ -9,9 +9,11 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
 
 // libstdc++
 #include <string>
+#include <vector>
 
 // libc
 #include <time.h> // For time_t
@@ -20,13 +22,20 @@ namespace verbatim {
 
 struct Tag
 {
-    time_t modified;    // Modification time of file content (eg. tags)
-    std::string file,   // Filename of original source
-                artist, // Performing artist
-                album,  // EP/LP/Single/Album name
-                title,  // Track title
-                genre;  // Apparent genre
+    /* Type definitions */
+    typedef std::vector<char> ByteVector;
 
+    /* Member variables/attributes */
+    time_t modified;        // Modification time of file content (eg. tags)
+    std::string file,       // Filename of original source
+                artist,     // Performing artist
+                album,      // EP/LP/Single/Album name
+                title,      // Track title
+                genre,      // Apparent genre
+                mimetype;   // Mime type of...
+    ByteVector album_art;   // Front cover only
+
+    /* Member functions/methods */
     Tag() : modified(0) {}
 
     template<typename Archive>
@@ -40,7 +49,9 @@ struct Tag
             & artist
             & album
             & title
-            & genre;
+            & genre
+            & mimetype
+            & album_art;
     }
 };
 
