@@ -439,7 +439,7 @@ struct Mdb {
     struct SimpleIndexTrigger: public Trigger {
       const char* _name; Mdb _indexDb;
       SimpleIndexTrigger (Mdb& mdb, const char* name = "index"): _name (name), _indexDb (mdb._env, name) {}
-      gstring getTriggerName() {return gstring (0, (void*) _name, false, strlen (_name), true);}
+      gstring getTriggerName() const {return gstring (0, (void*) _name, false, strlen (_name), true);}
       void add (Mdb& mdb, void* key, gstring& kbytes, void* value, gstring& vbytes, Transaction& txn) {
         MDB_val mkey = {vbytes.size(), (void*) vbytes.data()};
         MDB_val mvalue = {kbytes.size(), (void*) kbytes.data()};
