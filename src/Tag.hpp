@@ -27,8 +27,7 @@ struct Tag
 
     /* Member variables/attributes */
     time_t modified;        // Modification time of file content (eg. tags)
-    std::string file,       // Filename of original source
-                artist,     // Performing artist
+    std::string artist,     // Performing artist
                 album,      // EP/LP/Single/Album name
                 title,      // Track title
                 genre,      // Apparent genre
@@ -45,7 +44,6 @@ struct Tag
     {
         archive
             & modified
-            & file
             & artist
             & album
             & title

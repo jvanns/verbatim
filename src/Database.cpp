@@ -7,7 +7,6 @@
 
 // verbatim
 #include "Tag.hpp"
-#include "utility/Hash.hpp"
 
 // Taglib
 #include <taglib/tag.h>
@@ -66,20 +65,18 @@ struct GrabTag {
 
     void operator()()
     {
-        verbatim::Tag v;
-        const char *filename = pathname.c_str();
-        const size_t k = GrabTag::hasher(filename, pathname.size());
+        verbatim::Tag v; // Value
+        const string &k = pathname; // Key
 
         if (db.first(k, v) && v.modified == modified)
             return; // Assume entry exists and is untouched
 
-        const TagLib::FileRef file(filename, false);
+        const TagLib::FileRef file(pathname.c_str(), false);
         const TagLib::Tag *tags = file.tag();
 
         if (!tags)
             return; // Not a valid audio file with tags?
 
-        v.file = pathname;
         v.modified = modified;
         v.genre = tags->genre().to8Bit();
         v.album = tags->album().to8Bit();
@@ -94,10 +91,7 @@ struct GrabTag {
     glim::Mdb &db;
     const time_t modified;
     const string pathname;
-    static const verbatim::utility::Hash hasher;
 };
-
-const verbatim::utility::Hash GrabTag::hasher = verbatim::utility::Hash();
 
 } // anonymous
 
@@ -133,8 +127,9 @@ Database::list_entries(ostream &stream) const
 {
     assert(db != NULL); // open() must have been called first
 
+    string key;
     verbatim::Tag value;
-    size_t key = 0, count = 0;
+    size_t entry_count = 0;
     glim::Mdb::Iterator i(db->begin());
     const glim::Mdb::Iterator j(db->end());
 
@@ -144,18 +139,17 @@ Database::list_entries(ostream &stream) const
 
         stream <<
             key << '\t' <<
-            value.file << '\t' <<
             value.modified << '\t' <<
             value.genre << '\t' <<
             value.artist << '\t' <<
             value.album << '\t' <<
             value.title << '\n';
 
-        ++count;
+        ++entry_count;
         ++i;
     }
 
-    return count;
+    return entry_count;
 }
 
 void
