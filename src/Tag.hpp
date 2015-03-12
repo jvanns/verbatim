@@ -20,22 +20,41 @@
 
 namespace verbatim {
 
-struct Tag
+struct Img
 {
     /* Type definitions */
     typedef std::vector<char> ByteVector;
 
+    size_t size;
+    ByteVector data;
+    std::string mimetype;
+
+    Img() : size(0) {}
+
+    template<typename Archive>
+    void
+    serialize(Archive &archive,
+              unsigned int /* version */)
+    {
+        archive
+            & size
+            & data
+            & mimetype;
+    }
+};
+
+struct Tag
+{
     /* Member variables/attributes */
     time_t modified;        // Modification time of file content (eg. tags)
     std::string artist,     // Performing artist
                 album,      // EP/LP/Single/Album name
                 title,      // Track title
-                genre,      // Apparent genre
-                mimetype;   // Mime type of...
-    ByteVector album_art;   // Front cover only
+                genre;      // Apparent genre
+    size_t album_art_ref;   // Reference to album art image
 
     /* Member functions/methods */
-    Tag() : modified(0) {}
+    Tag() : modified(0), album_art_ref(0) {}
 
     template<typename Archive>
     void
@@ -48,8 +67,7 @@ struct Tag
             & album
             & title
             & genre
-            & mimetype
-            & album_art;
+            & album_art_ref;
     }
 };
 
