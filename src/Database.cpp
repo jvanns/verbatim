@@ -135,7 +135,7 @@ void
 Database::open(const string &path)
 {
     assert(db == NULL);
-    db = new glim::Mdb(path.c_str(), 256, "verbatim", 0, true, 0600);
+    db = new glim::Mdb(path.c_str(), 256, "verbatim", 0, false, 0600);
     assert(db != NULL);
 }
 
