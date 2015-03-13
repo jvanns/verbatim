@@ -5,6 +5,8 @@
 // Interface
 #include "Context.hpp"
 
+using std::ostream;
+
 namespace verbatim {
 
 Context::Context(size_t concurrency) : threads(NULL), tv(NULL), db(NULL)
@@ -25,6 +27,16 @@ Context::~Context()
     delete threads;
     delete db;
     delete tv;
+}
+
+void
+Context::print_metrics(ostream &stream) const
+{
+    if (tv)
+        tv->print_metrics(stream);
+
+    if (db)
+        db->print_metrics(stream);
 }
 
 } // verbatim

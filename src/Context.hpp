@@ -10,6 +10,9 @@
 #include "Database.hpp"
 #include "utility/ThreadPool.hpp"
 
+// libstdc++
+#include <iostream>
+
 namespace verbatim {
 
 /*
@@ -24,6 +27,7 @@ class Context
 
         inline Traverse& traverser() { return *tv; }
         inline Database& database()  { return *db; }
+        void print_metrics(std::ostream &stream) const;
     private:
         /* Attributes/member variables */
         utility::ThreadPool *threads;
