@@ -26,6 +26,7 @@ class Database
         ~Database();
 
         void open(const std::string &path);
+        void print_metrics(std::ostream &stream) const;
         size_t list_entries(std::ostream &stream) const;
     private:
         /* Forward declarations */

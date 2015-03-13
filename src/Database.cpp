@@ -18,6 +18,7 @@
 // libc
 #include <assert.h>
 
+using std::endl;
 using std::string;
 using std::ostream;
 
@@ -155,6 +156,18 @@ Database::open(const string &path)
     assert(db == NULL);
     db = new glim::Mdb(path.c_str(), 256, "verbatim", 0, false, 0600);
     assert(db != NULL);
+}
+
+void
+Database::print_metrics(ostream &stream) const
+{
+    stream <<
+        "verbatim[Database]: Total #entries = " <<
+        entries <<
+        endl <<
+        "verbatim[Database]: Total #updates = " <<
+        updates <<
+        endl;
 }
 
 size_t
