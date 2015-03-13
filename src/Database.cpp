@@ -197,7 +197,7 @@ Database::add(const Traverse::Path &p)
     }
 }
 
-Database::RegisterPath::RegisterPath(Database &db) : database(db)
+Database::RegisterPath::RegisterPath(Database &d) : db(d)
 {
 }
 
@@ -208,7 +208,7 @@ Database::RegisterPath::~RegisterPath()
 void
 Database::RegisterPath::operator() (const Traverse::Path &p)
 {
-    database.add(p);
+    db.add(p);
 }
 
 } // verbatim

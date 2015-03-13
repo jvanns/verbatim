@@ -35,12 +35,12 @@ class Database
         class RegisterPath : public Traverse::Callback
         {
             public:
-                RegisterPath(Database &db);
+                RegisterPath(Database &d);
                 ~RegisterPath();
 
                 void operator() (const Traverse::Path &p);
             private:
-                Database &database;
+                Database &db;
         };
 
         /* Attributes/member variables */
