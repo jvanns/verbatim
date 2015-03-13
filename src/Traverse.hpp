@@ -10,6 +10,7 @@
 
 // libstdc++
 #include <string>
+#include <iostream>
 
 // libc
 #include <sys/stat.h>
@@ -41,6 +42,7 @@ class Traverse
 
         void register_callback(Callback *callback);
         void scan(const std::string &path);
+        void print_metrics(std::ostream &stream) const;
     private:
         /* Attributes/member variables */
         static Traverse *traverser; // Required for libc func ptr callback :(

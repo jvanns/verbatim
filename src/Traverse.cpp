@@ -10,6 +10,7 @@
 #include <assert.h>
 
 using std::string;
+using std::ostream;
 
 namespace verbatim {
 
@@ -74,6 +75,11 @@ void
 Traverse::scan(const string &path)
 {
     nftw(path.c_str(), &C::nftw_callback, 256, 0);
+}
+
+void
+Traverse::print_metrics(ostream &stream) const
+{
 }
 
 } // verbatim
