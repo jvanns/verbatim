@@ -170,6 +170,11 @@ Database::list_entries(ostream &stream) const
 }
 
 void
+Database::add_entry(const Entry &e)
+{
+}
+
+void
 Database::add_path(const Traverse::Path &p)
 {
     assert(db != NULL); // open() must have been called first

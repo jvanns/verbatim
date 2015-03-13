@@ -28,6 +28,9 @@ class Database
         void open(const std::string &path);
         size_t list_entries(std::ostream &stream) const;
     private:
+        /* Forward declarations */
+        struct Entry;
+
         /* Type definitions */
         class RegisterPath : public Traverse::Callback
         {
@@ -47,9 +50,11 @@ class Database
         utility::ThreadPool &threads;
 
         /* Methods/Member functions */
+        void add_entry(const Entry &e);
         void add_path(const Traverse::Path &p);
 
         /* Friend class declarations */
+        friend struct Entry;
         friend class RegisterPath;
 };
 
