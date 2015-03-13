@@ -74,7 +74,13 @@ Traverse::register_callback(Callback *callback)
 void
 Traverse::scan(const string &path)
 {
+    utility::Timer t;
+
+    t.start();
     nftw(path.c_str(), &C::nftw_callback, 256, 0);
+    t.stop();
+
+    dispatch_scan_time = t.elapsed();
 }
 
 void

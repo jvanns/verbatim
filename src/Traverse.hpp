@@ -5,6 +5,9 @@
 #ifndef VERBATIM_TRAVERSE_HPP
 #define VERBATIM_TRAVERSE_HPP
 
+// verbatim
+#include "utility/Timer.hpp"
+
 // Signals
 #include "signals/Signal.h"
 
@@ -47,6 +50,7 @@ class Traverse
         /* Attributes/member variables */
         static Traverse *traverser; // Required for libc func ptr callback :(
         Gallant::Signal1<const Path&> observers;
+        utility::Timer::Duration dispatch_scan_time;
 
         /* Friend class declarations */
         friend class Dispatcher;
