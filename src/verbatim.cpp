@@ -93,15 +93,9 @@ int main(int argc, char *argv[])
     music_path = argv[optind];
 
     Context c(threads);
-    size_t duration = 0;
 
     c.database().open(db_path);
-    duration = c.traverser().scan(music_path);
-
-    if (verbose)
-        cout << "Scan took: "
-             << duration / static_cast<double>(Timer::precision())
-             << "s\n";
+    c.traverser().scan(music_path);
 
     return 0;
 }
