@@ -9,6 +9,7 @@
 #include <ftw.h>
 #include <assert.h>
 
+using std::endl;
 using std::string;
 using std::ostream;
 
@@ -86,6 +87,12 @@ Traverse::scan(const string &path)
 void
 Traverse::print_metrics(ostream &stream) const
 {
+    stream <<
+        "verbatim[Traverse]: Dispatch time = " <<
+        dispatch_scan_time.seconds <<
+        "s " <<
+        dispatch_scan_time.nanoseconds <<
+        "ns\n";
 }
 
 } // verbatim
