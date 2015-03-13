@@ -25,7 +25,7 @@ class Context
         Context(size_t concurrency);
         ~Context();
 
-        void run();
+        void wait();
         inline Traverse& traverser() { return *tv; }
         inline Database& database()  { return *db; }
         void print_metrics(std::ostream &stream) const;

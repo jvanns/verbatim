@@ -97,6 +97,9 @@ int main(int argc, char *argv[])
     c.database().open(db_path);
     c.traverser().scan(music_path);
 
+    c.wait();
+    c.print_metrics(cout);
+
     return 0;
 }
 

@@ -27,7 +27,7 @@ Context::~Context()
 }
 
 void
-Context::run()
+Context::wait()
 {
     threads->wait();
 }
