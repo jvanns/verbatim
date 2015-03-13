@@ -56,7 +56,7 @@ struct Database::Entry
         tag.artist = tags->artist().to8Bit();
         //tag.album_art_ref = add_image(tags, v);
 
-        db.add_entry(*this);
+        db.add(*this);
     }
 
     /*
@@ -178,13 +178,13 @@ Database::lookup(Entry &e) const
 
 inline
 void
-Database::add_entry(const Entry &e)
+Database::add(const Entry &e)
 {
     db->add(e.pathname, e.tag);
 }
 
 void
-Database::add_path(const Traverse::Path &p)
+Database::add(const Traverse::Path &p)
 {
     assert(db != NULL); // open() must have been called first
 
@@ -208,7 +208,7 @@ Database::RegisterPath::~RegisterPath()
 void
 Database::RegisterPath::operator() (const Traverse::Path &p)
 {
-    database.add_path(p);
+    database.add(p);
 }
 
 } // verbatim

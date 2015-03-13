@@ -49,10 +49,12 @@ class Database
         RegisterPath new_path;
         utility::ThreadPool &threads;
 
-        /* Methods/Member functions */
+        /* Methods/Member functions (Entry) */
+        void add(const Entry &e);
         bool lookup(Entry &e) const;
-        void add_entry(const Entry &e);
-        void add_path(const Traverse::Path &p);
+
+        /* Methods/Member functions (Path) */
+        void add(const Traverse::Path &p);
 
         /* Friend class declarations */
         friend struct Entry;
