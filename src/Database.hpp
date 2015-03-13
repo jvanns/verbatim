@@ -58,10 +58,6 @@ class Database
 
         /* Methods/Member functions (Path) */
         void update(const Traverse::Path &p);
-
-        /* Friend class declarations */
-        friend struct Entry;
-        friend class RegisterPath;
 };
 
 } // verbatim
