@@ -5,34 +5,15 @@
 // Interface
 #include "Timer.hpp"
 
-namespace {
-
-inline timespec
-now()
-{
-    timespec ts = {0};
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts;
-}
-
-inline size_t
-diff(const timespec &from, const timespec &to)
-{
-    return ((from.tv_sec - to.tv_sec) * verbatim::utility::Timer::precision())
-          + (from.tv_nsec - to.tv_nsec);
-}
-
-} // anonymous
+// libc
+#include <time.h>
+#include <sys/time.h>
 
 namespace verbatim {
 namespace utility {
 
 Timer::Timer() : running(false)
 {
-    started.tv_sec = 0;
-    started.tv_nsec = 0;
-    stopped.tv_sec = 0;
-    stopped.tv_nsec = 0;
 }
 
 void
@@ -49,7 +30,7 @@ Timer::stop()
     running = false;
 }
 
-size_t
+Timer::Duration
 Timer::elapsed() const
 {
     if (!running)
@@ -58,10 +39,31 @@ Timer::elapsed() const
     return diff(now(), started);
 }
 
-size_t
-Timer::precision()
+inline
+Timer::Timestamp
+Timer::now()
 {
-    return 1000000000UL;
+    timespec ts = {0};
+    Timer::Timestamp t;
+
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    t.seconds = ts.tv_sec;
+    t.nanoseconds = ts.tv_nsec;
+
+    return t;
+}
+
+inline 
+Timer::Duration
+Timer::diff(const Timestamp &from, const Timestamp &to)
+{
+    Timer::Duration d;
+
+    d.seconds = from.seconds - to.seconds;
+    d.nanoseconds = from.nanoseconds - to.nanoseconds;
+
+    return d;
 }
 
 } // utility

@@ -6,9 +6,8 @@
 #define VERBATIM_UTILITY_TIMER_HPP
 
 // libc
-#include <time.h>
 #include <stdint.h>
-#include <sys/time.h>
+#include <stddef.h>
 
 namespace verbatim {
 namespace utility {
@@ -16,17 +15,29 @@ namespace utility {
 class Timer
 {
     public:
+        /* Type definitions */
+        struct Duration
+        {
+            size_t seconds, nanoseconds;
+            Duration() : seconds(0), nanoseconds(0) {}
+        };
+
         /* Member functions/methods */
         Timer();
-
         void start();
         void stop();
-        size_t elapsed() const;
-        static size_t precision(); // Returns the precision (eg nanoseconds)
+        Duration elapsed() const;
     private:
+        /* Type definitions */
+        typedef Duration Timestamp;
+
+        /* Member functions/methods */
+        static Timestamp now();
+        static Duration diff(const Timestamp &from, const Timestamp &to);
+
         /* Member variables/attributes */
         bool running;
-        timespec started, stopped;
+        Timestamp started, stopped;
 };
 
 } // utility
