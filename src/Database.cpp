@@ -113,6 +113,19 @@ struct Database::Entry
     const string pathname;
     const time_t modify_time;
 };
+
+/*
+ * verbatim::Database::RegisterPath
+ */
+Database::RegisterPath::RegisterPath(Database &d) : db(d)
+{
+}
+
+void
+Database::RegisterPath::operator() (const Traverse::Path &p)
+{
+    db.update(p);
+}
  
 /*
  * verbatim::Database 
@@ -207,16 +220,6 @@ Database::update(const Traverse::Path &p)
         const Entry e(*this, p.info->st_mtime, p.name);
         threads.submit(e);
     }
-}
-
-Database::RegisterPath::RegisterPath(Database &d) : db(d)
-{
-}
-
-void
-Database::RegisterPath::operator() (const Traverse::Path &p)
-{
-    db.update(p);
 }
 
 } // verbatim
