@@ -208,6 +208,7 @@ Database::update(const Entry &e)
     updates += e.modified;
 }
 
+inline
 void
 Database::update(const Traverse::Path &p)
 {
