@@ -50,6 +50,7 @@ class Database
         utility::ThreadPool &threads;
 
         /* Methods/Member functions */
+        bool lookup(Entry &e) const;
         void add_entry(const Entry &e);
         void add_path(const Traverse::Path &p);
 

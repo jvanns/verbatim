@@ -21,12 +21,14 @@
 using std::string;
 using std::ostream;
 
-namespace {
+namespace verbatim {
 
-struct GrabTag {
-    GrabTag(glim::Mdb &d,
-            const time_t f,
-            const string &p) :
+/*
+ * verbatim::Database::Entry
+ */
+struct Database::Entry
+{
+    Entry(Database &d, const time_t f, const string &p) :
         db(d),
         modified(f),
         pathname(p)
@@ -38,10 +40,7 @@ struct GrabTag {
      */
     void operator()()
     {
-        verbatim::Tag v; // Value
-        const string &k = pathname; // Key
-
-        if (db.first(k, v) && v.modified == modified)
+        if (db.lookup(*this) && tag.modified == modified)
             return; // Assume entry exists and is untouched
 
         const TagLib::FileRef file(pathname.c_str(), false);
@@ -50,49 +49,49 @@ struct GrabTag {
         if (!tags)
             return; // Not a valid audio file with tags?
 
-        v.modified = modified;
-        v.genre = tags->genre().to8Bit();
-        v.album = tags->album().to8Bit();
-        v.title = tags->title().to8Bit();
-        v.artist = tags->artist().to8Bit();
-        v.album_art_ref = add_image(tags, v);
+        tag.modified = modified;
+        tag.genre = tags->genre().to8Bit();
+        tag.album = tags->album().to8Bit();
+        tag.title = tags->title().to8Bit();
+        tag.artist = tags->artist().to8Bit();
+        //tag.album_art_ref = add_image(tags, v);
 
-        db.add(k, v);
+        db.add_entry(*this);
     }
 
+    /*
     size_t
-    add_image(const TagLib::Tag *source,
-              verbatim::Tag &destination)
+    add_image(const TagLib::Tag *source, Tag &destination)
     {
-        static const verbatim::utility::Hash hasher;
+        static const utility::Hash hasher;
 
         const TagLib::ID3v2::Tag *tag =
             dynamic_cast<const TagLib::ID3v2::Tag*>(source);
 
         if (!tag)
-            return 0; /* Not an ID3v2 tag. Perhaps an OGG or FLAC? */
+            return 0; // Not an ID3v2 tag. Perhaps an OGG or FLAC?
 
         const TagLib::ID3v2::FrameList &frames = tag->frameList("APIC");
 
         if (frames.isEmpty())
             return 0;
 
-        /*
-         * Adds only the first in the list and this assumes
-         * it is the album cover, not the back or inside etc.
-         */
+        //
+        // Adds only the first in the list and this assumes
+        // it is the album cover, not the back or inside etc.
+        //
         TagLib::ID3v2::AttachedPictureFrame *frame =
             static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frames.front());
 
         const char *data = frame->picture().data();
         const size_t len = frame->picture().size(),
                      hash = hasher(data, len);
-        verbatim::Img album_art;
+        Img album_art;
 
         assert(hash != 0);
 
         if (!db.first(hash, album_art)) {
-            verbatim::Img::ByteVector::iterator i(album_art.data.begin());
+            Img::ByteVector::iterator i(album_art.data.begin());
 
             album_art.mimetype = frame->mimeType().to8Bit();
             album_art.data.reserve(len);
@@ -104,16 +103,17 @@ struct GrabTag {
 
         return hash;
     }
+    */
 
-    glim::Mdb &db;
+    Tag tag;
+    Database &db;
     const time_t modified;
     const string pathname;
 };
-
-} // anonymous
-
-namespace verbatim {
  
+/*
+ * verbatim::Database 
+ */
 Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(NULL),
     traverser(t),
@@ -169,9 +169,18 @@ Database::list_entries(ostream &stream) const
     return entry_count;
 }
 
+inline
+bool
+Database::lookup(Entry &e) const
+{
+    return db->first(e.pathname, e.tag);
+}
+
+inline
 void
 Database::add_entry(const Entry &e)
 {
+    db->add(e.pathname, e.tag);
 }
 
 void
@@ -183,8 +192,8 @@ Database::add_path(const Traverse::Path &p)
      * Add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        const GrabTag gt(*db, p.info->st_mtime, p.name);
-        threads.submit(gt);
+        const Entry e(*this, p.info->st_mtime, p.name);
+        threads.submit(e);
     }
 }
 
