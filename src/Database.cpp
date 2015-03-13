@@ -119,6 +119,8 @@ struct Database::Entry
  */
 Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(NULL),
+    entries(0),
+    updates(0),
     traverser(t),
     new_path(*this),
     threads(tp)
@@ -183,7 +185,14 @@ inline
 void
 Database::update(const Entry &e)
 {
-    db->add(e.pathname, e.tag);
+    if (e.modified)
+        db->add(e.pathname, e.tag);
+
+    /*
+     * TODO: These may need to be protected by a mutex?
+     */
+    entries += 1;
+    updates += e.modified;
 }
 
 void

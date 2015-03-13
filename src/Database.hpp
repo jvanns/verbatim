@@ -45,8 +45,11 @@ class Database
 
         /* Attributes/member variables */
         glim::Mdb *db;
+        size_t entries, updates;
+
         Traverse &traverser;
         RegisterPath new_path;
+
         utility::ThreadPool &threads;
 
         /* Methods/Member functions (Entry) */
