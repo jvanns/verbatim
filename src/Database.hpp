@@ -50,11 +50,11 @@ class Database
         utility::ThreadPool &threads;
 
         /* Methods/Member functions (Entry) */
-        void add(const Entry &e);
         bool lookup(Entry &e) const;
+        void update(const Entry &e);
 
         /* Methods/Member functions (Path) */
-        void add(const Traverse::Path &p);
+        void update(const Traverse::Path &p);
 
         /* Friend class declarations */
         friend struct Entry;
