@@ -30,8 +30,9 @@ struct Database::Entry
 {
     Entry(Database &d, const time_t f, const string &p) :
         db(d),
-        modified(f),
-        pathname(p)
+        modified(0),
+        pathname(p),
+        modify_time(f)
     {
     }
 
@@ -40,21 +41,21 @@ struct Database::Entry
      */
     void operator()()
     {
-        if (db.lookup(*this) && tag.modified == modified)
-            return; // Assume entry exists and is untouched
+        if (!db.lookup(*this) || tag.modified < modify_time) {
+            const TagLib::FileRef file(pathname.c_str(), false);
+            const TagLib::Tag *tags = file.tag();
 
-        const TagLib::FileRef file(pathname.c_str(), false);
-        const TagLib::Tag *tags = file.tag();
+            if (tags) {
+                tag.modified = modify_time;
+                tag.genre = tags->genre().to8Bit();
+                tag.album = tags->album().to8Bit();
+                tag.title = tags->title().to8Bit();
+                tag.artist = tags->artist().to8Bit();
+                //tag.album_art_ref = add_image(tags, v);
 
-        if (!tags)
-            return; // Not a valid audio file with tags?
-
-        tag.modified = modified;
-        tag.genre = tags->genre().to8Bit();
-        tag.album = tags->album().to8Bit();
-        tag.title = tags->title().to8Bit();
-        tag.artist = tags->artist().to8Bit();
-        //tag.album_art_ref = add_image(tags, v);
+                modified = 1;
+            }
+        }
 
         db.update(*this);
     }
@@ -107,8 +108,10 @@ struct Database::Entry
 
     Tag tag;
     Database &db;
-    const time_t modified;
+    size_t modified;
+
     const string pathname;
+    const time_t modify_time;
 };
  
 /*
