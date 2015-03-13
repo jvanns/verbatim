@@ -213,10 +213,6 @@ Database::RegisterPath::RegisterPath(Database &d) : db(d)
 {
 }
 
-Database::RegisterPath::~RegisterPath()
-{
-}
-
 void
 Database::RegisterPath::operator() (const Traverse::Path &p)
 {

@@ -36,8 +36,6 @@ class Database
         {
             public:
                 RegisterPath(Database &d);
-                ~RegisterPath();
-
                 void operator() (const Traverse::Path &p);
             private:
                 Database &db;
