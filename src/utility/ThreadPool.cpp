@@ -8,8 +8,8 @@
 // libc
 #include <assert.h>
 
+using std::thread;
 using std::unique_ptr;
-using boost::thread;
 
 namespace verbatim {
 namespace utility {

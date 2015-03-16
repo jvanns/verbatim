@@ -7,11 +7,11 @@
 
 // boost
 #include <boost/asio.hpp>
-#include <boost/thread/thread.hpp>
 
 // stl
 #include <vector>
 #include <memory>
+#include <thread>
 
 namespace verbatim {
 namespace utility {
@@ -46,7 +46,7 @@ class ThreadPool {
         bool running;
         boost::asio::io_service service;
         boost::asio::io_service::work *work;
-        std::vector<std::unique_ptr<boost::thread> > workers;
+        std::vector<std::unique_ptr<std::thread> > workers;
 
         /* Friend class declarations */
         friend class Worker;
