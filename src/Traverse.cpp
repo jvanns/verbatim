@@ -56,6 +56,12 @@ nftw_callback(const char *path,
 namespace verbatim {
 
 /* Methods/Member functions */
+Traverse::Path::Path(const char *s, const struct stat *t) :
+    name(new string(s)),
+    info(new struct stat(*t))
+{
+}
+
 Traverse::Traverse()
 {
     Traverse::traverser = this; // Bind
