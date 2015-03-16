@@ -66,8 +66,6 @@ struct Database::Entry
     size_t
     add_image(const TagLib::Tag *source, Tag &destination)
     {
-        static const utility::Hash hasher;
-
         const TagLib::ID3v2::Tag *tag =
             dynamic_cast<const TagLib::ID3v2::Tag*>(source);
 
@@ -114,7 +112,11 @@ struct Database::Entry
 
     const string pathname;
     const time_t modify_time;
+
+    static const utility::Hash hasher;
 };
+
+const utility::Hash Database::Entry::hasher = utility::Hash();
 
 /*
  * verbatim::Database::RegisterPath
