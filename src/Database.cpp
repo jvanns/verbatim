@@ -29,7 +29,7 @@ namespace verbatim {
  */
 struct Database::Entry
 {
-    Entry(Database &d, const time_t f, const string &p) :
+    Entry(Database &d, const time_t f, const char *p) :
         db(d),
         modified(0),
         pathname(p),
@@ -231,7 +231,7 @@ Database::update(const Traverse::Path &p)
      * Add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        const Entry e(*this, p.info->st_mtime, p.name);
+        const Entry e(*this, p.info->st_mtime, p.name->c_str());
         threads.submit(e);
     }
 }
