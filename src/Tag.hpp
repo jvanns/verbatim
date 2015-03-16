@@ -51,10 +51,9 @@ struct Tag
                 album,      // EP/LP/Single/Album name
                 title,      // Track title
                 genre;      // Apparent genre
-    size_t album_art_ref;   // Reference to album art image
 
     /* Member functions/methods */
-    Tag() : modified(0), album_art_ref(0) {}
+    Tag() : modified(0) {}
 
     template<typename Archive>
     void
@@ -66,8 +65,7 @@ struct Tag
             & artist
             & album
             & title
-            & genre
-            & album_art_ref;
+            & genre;
     }
 };
 
