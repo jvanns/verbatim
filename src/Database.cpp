@@ -47,12 +47,13 @@ struct Database::Entry
             const TagLib::Tag *tags = file.tag();
 
             if (tags) {
+                tag.filename = pathname;
                 tag.modified = modify_time;
+
                 tag.genre = tags->genre().to8Bit();
                 tag.album = tags->album().to8Bit();
                 tag.title = tags->title().to8Bit();
                 tag.artist = tags->artist().to8Bit();
-                //tag.album_art_ref = add_image(tags, v);
 
                 modified = 1;
             }
@@ -187,6 +188,7 @@ Database::list_entries(ostream &stream) const
 
         stream <<
             key << '\t' <<
+            value.filename << '\t' <<
             value.modified << '\t' <<
             value.genre << '\t' <<
             value.artist << '\t' <<
