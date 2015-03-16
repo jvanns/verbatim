@@ -30,6 +30,7 @@ namespace verbatim {
 struct Database::Entry
 {
     Entry(Database &d, const time_t f, const char *p) :
+        key(0),
         db(d),
         modified(0),
         pathname(p),
@@ -47,6 +48,8 @@ struct Database::Entry
             const TagLib::Tag *tags = file.tag();
 
             if (tags) {
+                key = hasher(pathname.c_str(), pathname.size());
+
                 tag.filename = pathname;
                 tag.modified = modify_time;
 
@@ -106,7 +109,9 @@ struct Database::Entry
     }
     */
 
-    Tag tag;
+    Tag tag;    // DB entry/item value
+    size_t key; // DB entry/item key
+
     Database &db;
     size_t modified;
 
@@ -178,9 +183,9 @@ Database::list_entries(ostream &stream) const
 {
     assert(db != NULL); // open() must have been called first
 
-    string key;
+    size_t key = 0,
+           entry_count = 0;
     verbatim::Tag value;
-    size_t entry_count = 0;
     glim::Mdb::Iterator i(db->begin());
     const glim::Mdb::Iterator j(db->end());
 
@@ -208,15 +213,17 @@ inline
 bool
 Database::lookup(Entry &e) const
 {
-    return db->first(e.pathname, e.tag);
+    return db->first(e.key, e.tag);
 }
 
 inline
 void
 Database::update(const Entry &e)
 {
-    if (e.modified)
-        db->add(e.pathname, e.tag);
+    if (e.modified) {
+        assert(e.key != 0);
+        db->add(e.key, e.tag);
+    }
 
     /*
      * TODO: These may need to be protected by a mutex?
