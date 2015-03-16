@@ -50,7 +50,8 @@ struct Tag
     std::string artist,     // Performing artist
                 album,      // EP/LP/Single/Album name
                 title,      // Track title
-                genre;      // Apparent genre
+                genre,      // Apparent genre
+                filename;   // Source filename
 
     /* Member functions/methods */
     Tag() : modified(0) {}
@@ -65,7 +66,8 @@ struct Tag
             & artist
             & album
             & title
-            & genre;
+            & genre
+            & filename;
     }
 };
 
