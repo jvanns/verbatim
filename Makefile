@@ -13,7 +13,7 @@ CXX ?= g++
 LDLIBS ?=
 LDFLAGS ?=
 CPPFLAGS += -MMD -MP -Isrc -Iext -Isub -Wno-unused-local-typedefs
-CXXFLAGS += -Wall -pedantic -Wno-long-long
+CXXFLAGS += -Wall -pedantic -Wno-long-long -std=c++11
 
 # Phony targets
 .PHONY: clean dist install all lmdb
