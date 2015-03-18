@@ -5,50 +5,83 @@
 #ifndef VERBATIM_UTILITY_DELEGATE_HPP
 #define VERBATIM_UTILITY_DELEGATE_HPP
 
+// libstdc++
+#include <map>
+
 namespace verbatim {
 namespace utility {
 
-template <typename Class, typename In, typename Out>
+struct Observer {
+    virtual ~Observer() {};
+};
+
+template <typename In, typename Out>
 class Delegate
 {
     private:
         /* Dependent typedefs */
-        typedef void (Class::*Fn)(const In&, Out&);
-
-        /* Member functions */
-        Delegate();
-        Delegate(const Delegate &d);
+        typedef void (Observer::*Fn)(const In&, Out&);
+        typedef std::map<Observer*, Fn> Observers;
 
         /* Member attributes */
-        Class &target;
-        Fn callback;
+        Observers observers;
     public:
         /* Member functions */
-        explicit Delegate(Class &c, Fn f) : target(c), callback(f) {}
-        void operator() (const In &i, Out &o) { (target.*callback)(i, o); }
+        template<typename ObserverImpl>
+        inline void connect(ObserverImpl *o,
+                            void (ObserverImpl::*f)(const In&, Out&))
+        {
+            observers[o] = static_cast<Fn>(f);
+        }
+
+        inline void dispatch(const In &i, Out &o)
+        {
+            typename Observers::iterator b(observers.begin()),
+                                         e(observers.end());
+
+            while (b != e) {
+                Observer &object = *(b->first);
+                Fn method = b->second;
+                (object.*method)(i, o);
+                ++b;
+            }
+        }
 };
 
 /*
  * Specialisation for no result store
  */
-template <typename Class, typename In>
-class Delegate<Class, In, void>
+template <typename In>
+class Delegate<In, void>
 {
     private:
         /* Dependent typedefs */
-        typedef void (Class::*Fn)(const In&);
-
-        /* Member functions */
-        Delegate();
-        Delegate(const Delegate &d);
+        typedef void (Observer::*Fn)(const In&);
+        typedef std::map<Observer*, Fn> Observers;
 
         /* Member attributes */
-        Class &target;
-        Fn callback;
+        Observers observers;
     public:
         /* Member functions */
-        explicit Delegate(Class &c, Fn f) : target(c), callback(f) {}
-        void operator() (const In &i) { (target.*callback)(i); }
+        template<typename ObserverImpl>
+        inline void connect(ObserverImpl *o,
+                            void (ObserverImpl::*f)(const In&))
+        {
+            observers[o] = static_cast<Fn>(f);
+        }
+
+        inline void dispatch(const In &i)
+        {
+            typename Observers::iterator b(observers.begin()),
+                                         e(observers.end());
+
+            while (b != e) {
+                Observer &object = *(b->first);
+                Fn method = b->second;
+                (object.*method)(i);
+                ++b;
+            }
+        }
 };
 
 } // utility
