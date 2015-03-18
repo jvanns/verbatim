@@ -7,9 +7,7 @@
 
 // verbatim
 #include "utility/Timer.hpp"
-
-// Signals
-#include "signals/Signal.h"
+#include "utility/Delegate.hpp"
 
 // libstdc++
 #include <memory> // For shared_ptr<>
@@ -33,7 +31,7 @@ class Traverse
             Path(const char *s, const struct stat *t);
         };
 
-        struct Callback {
+        struct Callback : public utility::Observer {
             virtual ~Callback() {}
             virtual void operator() (const Path&) = 0;
         };
@@ -50,8 +48,8 @@ class Traverse
     private:
         /* Attributes/member variables */
         static Traverse *traverser; // Required for libc func ptr callback :(
-        Gallant::Signal1<const Path&> observers;
         utility::Timer::Duration dispatch_scan_time;
+        utility::Delegate<const Path&, void> delegate;
 
         /* Friend class declarations */
         friend class Dispatcher;

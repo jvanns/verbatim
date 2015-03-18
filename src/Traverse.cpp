@@ -23,7 +23,7 @@ class Traverse::Dispatcher {
         inline void operator() (const Traverse::Path &p)
         {
             assert(Traverse::traverser != NULL);
-            Traverse::traverser->observers(p);
+            Traverse::traverser->delegate.dispatch(p);
         }
 };
 
@@ -73,7 +73,7 @@ Traverse::~Traverse()
 void
 Traverse::register_callback(Callback *callback)
 {
-    observers.Connect(callback, &Callback::operator());
+    delegate.connect(callback, &Callback::operator());
 }
 
 void
