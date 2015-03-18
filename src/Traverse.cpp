@@ -43,9 +43,7 @@ nftw_callback(const char *path,
 {
     if (flags != FTW_NS) {
         static verbatim::Traverse::Dispatcher dispatch;
-        const struct verbatim::Traverse::Path p(path, sb);
-
-        dispatch(p);
+        dispatch(verbatim::Traverse::Path(path, sb));
     }
 
     return 0; // Returning non-zero will terminate the nftw() traversal
