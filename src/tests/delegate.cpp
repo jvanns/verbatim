@@ -16,7 +16,7 @@ namespace {
 /*
  * Example callbacks
  */
-class ExampleA
+class ExampleA : public verbatim::utility::Observer
 {
     public:
         void set(const int &i)
@@ -29,7 +29,7 @@ class ExampleA
         int n;
 };
 
-class ExampleB
+class ExampleB : public verbatim::utility::Observer
 {
     public:
         void normalise(const int &i, double &out)
@@ -48,7 +48,7 @@ struct Bar {
     short b;
 };
 
-class ExampleC
+class ExampleC : public verbatim::utility::Observer
 {
     public:
         void copy(const Foo &f, Bar &b)
@@ -67,9 +67,11 @@ int main(int argc, char *argv[])
 
     {
         ExampleA e;
-        Delegate<ExampleA, int, void> cbk(e, &ExampleA::set);
+        Delegate<int, void> d;
 
-        cbk(8);
+        d.connect(&e, &ExampleA::set);
+        d.dispatch(8);
+
         assert(e.get() == 8);
     }
 
@@ -77,9 +79,11 @@ int main(int argc, char *argv[])
         ExampleB e;
         int i = 42;
         double result;
-        Delegate<ExampleB, int, double> cbk(e, &ExampleB::normalise);
+        Delegate<int, double> d;
 
-        cbk(i, result);
+        d.connect(&e, &ExampleB::normalise);
+        d.dispatch(i, result);
+
         assert(result >= 0.0f && result <= 1.0f);
     }
 
@@ -87,9 +91,11 @@ int main(int argc, char *argv[])
         const Foo f (19);
         Bar b;
         ExampleC e;
-        Delegate<ExampleC, Foo, Bar> cbk(e, &ExampleC::copy);
+        Delegate<Foo, Bar> d;
 
-        cbk(f, b);
+        d.connect(&e, &ExampleC::copy);
+        d.dispatch(f, b);
+
         assert(b.b == f.a);
     }
 
