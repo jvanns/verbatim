@@ -10,7 +10,6 @@
 #include "utility/Delegate.hpp"
 
 // libstdc++
-#include <memory> // For shared_ptr<>
 #include <string>
 #include <iostream>
 
@@ -26,9 +25,9 @@ class Traverse
          * Type definitions
          */
         struct Path {
-            const std::shared_ptr<const std::string> name;
-            const std::shared_ptr<const struct stat> info;
-            Path(const char *s, const struct stat *t);
+            const char *name;
+            const struct stat *info;
+            Path(const char *s, const struct stat *t) : name(s), info(t) {}
         };
 
         struct Callback : public utility::Observer {

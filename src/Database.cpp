@@ -242,7 +242,7 @@ Database::update(const Traverse::Path &p)
      * Add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        const Entry e(*this, p.info->st_mtime, p.name->c_str());
+        const Entry e(*this, p.info->st_mtime, p.name);
         threads.submit(e);
     }
 }
