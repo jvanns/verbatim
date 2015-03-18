@@ -1,6 +1,3 @@
-[submodule "sub/signals"]
-	path = sub/signals
-	url = https://github.com/pbhogan/Signals.git
 [submodule "sub/lmdb"]
 	path = sub/lmdb
 	url = https://gitorious.org/mdb/mdb.git
