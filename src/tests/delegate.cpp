@@ -73,6 +73,11 @@ int main(int argc, char *argv[])
         d.dispatch(8);
 
         assert(e.get() == 8);
+
+        d.dispatch(e.get() * 2);
+
+        assert(e.get() != 8);
+        assert(e.get() == 16);
     }
 
     {
