@@ -186,10 +186,8 @@ Database::list_entries(ostream &stream) const
     size_t key = 0,
            entry_count = 0;
     verbatim::Tag value;
-    glim::Mdb::Iterator i(db->begin());
-    const glim::Mdb::Iterator j(db->end());
-
-    while (i != j) {
+    
+    for (glim::Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
         i->getKey(key);
         i->getValue(value);
 
@@ -203,7 +201,6 @@ Database::list_entries(ostream &stream) const
             value.title << '\n';
 
         ++entry_count;
-        ++i;
     }
 
     return entry_count;
