@@ -25,6 +25,8 @@ int main(int argc, char *argv[])
     using std::cerr;
     using std::endl;
 
+    using verbatim::utility::Timer;
+
     /*
      * Test std::string KVP insert and retrieval
      */
@@ -87,24 +89,29 @@ int main(int argc, char *argv[])
      * Timed insertion of a trivial type
      */
     {
-        size_t time = 0;
-        verbatim::utility::Timer t;
+        Timer t;
+        Timer::Duration d;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Insert of " << max << " TT: ";
         t.start();
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j)
             db.add(i, j);
-        time = t.elapsed();
-        cerr << time << " ns\n";
+        d = t.elapsed();
+
+        cerr <<
+        d.seconds <<
+        "s " <<
+        d.nanoseconds <<
+        "ns\n";
     }
 
     /*
      * Timed retrieval of a trivial type
      */
     {
-        size_t time = 0;
-        verbatim::utility::Timer t;
+        Timer t;
+        Timer::Duration d;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Retrieval of " << max << " TT: ";
@@ -114,53 +121,67 @@ int main(int argc, char *argv[])
             db.first(i, out);
             assert(out == j);
         }
+        d = t.elapsed();
 
-        time = t.elapsed();
-        cerr << time << " ns\n";
+        cerr <<
+        d.seconds <<
+        "s " <<
+        d.nanoseconds <<
+        "ns\n";
     }
 
     /*
      * Timed insertion of a complex type
      */
     {
-        size_t time = 0;
-        verbatim::utility::Timer t;
+        Timer t;
+        Timer::Duration d;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Insert of " << max << " CT: ";
+        t.start();
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             std::map<int32_t, int32_t> m;
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
 
             m[i] = j;
-            t.start();
             db.add(key, m);
-            time += t.elapsed();
         }
-        cerr << time << " ns\n";
+        d = t.elapsed();
+
+        cerr <<
+        d.seconds <<
+        "s " <<
+        d.nanoseconds <<
+        "ns\n";
     }
 
     /*
      * Timed retrieval of a complex type
      */
     {
-        size_t time = 0;
-        verbatim::utility::Timer t;
+        Timer t;
+        Timer::Duration d;
         glim::Mdb db("/tmp/lmdb-test.db", 128, "lmdb-test", 0, true, 0600);
 
         cerr << "Retrieval of " << max << " CT: ";
+        t.start();
         for (int32_t i = 0, j = max ; j > 0 ; ++i, --j) {
             std::map<int32_t, int32_t> m;
             const uint64_t key = ((uint64_t)i << 32) | (uint64_t)j;
 
             m[i] = j;
-            t.start();
             db.first(key, m);
-            time += t.elapsed();
             assert(m.begin()->first == i &&
                    m.begin()->second == j);
         }
-        cerr << time << " ns\n";
+        d = t.elapsed();
+
+        cerr <<
+        d.seconds <<
+        "s " <<
+        d.nanoseconds <<
+        "ns\n";
     }
 
     return 0;
