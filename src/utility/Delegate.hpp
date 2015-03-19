@@ -6,7 +6,8 @@
 #define VERBATIM_UTILITY_DELEGATE_HPP
 
 // libstdc++
-#include <map>
+#include <list>
+#include <utility>
 
 namespace verbatim {
 namespace utility {
@@ -20,8 +21,9 @@ class Delegate
 {
     private:
         /* Dependent typedefs */
-        typedef void (Observer::*Fn)(const In&, Out&);
-        typedef std::map<Observer*, Fn> Observers;
+        typedef void (Observer::*Method)(const In&, Out&);
+        typedef std::pair<Observer*, Method> Item;
+        typedef std::list<Item> Observers;
 
         /* Member attributes */
         Observers observers;
@@ -29,9 +31,9 @@ class Delegate
         /* Member functions */
         template<typename ObserverImpl>
         inline void connect(ObserverImpl *o,
-                            void (ObserverImpl::*f)(const In&, Out&))
+                            void (ObserverImpl::*m)(const In&, Out&))
         {
-            observers[o] = static_cast<Fn>(f);
+            observers.push_back(std::make_pair(o, static_cast<Method>(m)));
         }
 
         inline void dispatch(const In &i, Out &o)
@@ -41,7 +43,7 @@ class Delegate
 
             while (b != e) {
                 Observer &object = *(b->first);
-                Fn method = b->second;
+                Method method = b->second;
                 (object.*method)(i, o);
                 ++b;
             }
@@ -56,8 +58,9 @@ class Delegate<In, void>
 {
     private:
         /* Dependent typedefs */
-        typedef void (Observer::*Fn)(const In&);
-        typedef std::map<Observer*, Fn> Observers;
+        typedef void (Observer::*Method)(const In&);
+        typedef std::pair<Observer*, Method> Item;
+        typedef std::list<Item> Observers;
 
         /* Member attributes */
         Observers observers;
@@ -65,9 +68,9 @@ class Delegate<In, void>
         /* Member functions */
         template<typename ObserverImpl>
         inline void connect(ObserverImpl *o,
-                            void (ObserverImpl::*f)(const In&))
+                            void (ObserverImpl::*m)(const In&))
         {
-            observers[o] = static_cast<Fn>(f);
+            observers.push_back(std::make_pair(o, static_cast<Method>(m)));
         }
 
         inline void dispatch(const In &i)
@@ -77,7 +80,7 @@ class Delegate<In, void>
 
             while (b != e) {
                 Observer &object = *(b->first);
-                Fn method = b->second;
+                Method method = b->second;
                 (object.*method)(i);
                 ++b;
             }
