@@ -54,5 +54,6 @@ ADD . $VERBATIM_ROOT
 WORKDIR $VERBATIM_ROOT
 RUN \
    ulimit -c 100000000 && \
+   make clean && \
    make -j`getconf _NPROCESSORS_ONLN` all
 ENV LD_LIBRARY_PATH ${VERBATIM_ROOT}/sub/lmdb/libraries/liblmdb
