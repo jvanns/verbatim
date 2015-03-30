@@ -8,6 +8,7 @@
 // verbatim
 #include "Tag.hpp"
 #include "utility/Hash.hpp"
+#include "utility/Exception.hpp"
 
 // Taglib
 #include <taglib/tag.h>
@@ -279,7 +280,10 @@ Database::Entry::serialize(Archive &archive, unsigned int /* version */)
 {
     switch (key.id) {
         case NO_ID:
-            // TODO: Throw exception
+            throw utility::ValueError("Database::Entry::serialize",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      key.id);
             break;
         case TAG_ID:
             {
