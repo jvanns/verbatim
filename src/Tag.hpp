@@ -14,6 +14,7 @@
 // libstdc++
 #include <string>
 #include <vector>
+#include <iostream>
 
 // libc
 #include <time.h> // For time_t
@@ -71,6 +72,9 @@ struct Tag
             & filename;
     }
 };
+
+std::ostream& operator<< (std::ostream &s, const Img &i);
+std::ostream& operator<< (std::ostream &s, const Tag &t);
 
 } // verbatim
 
