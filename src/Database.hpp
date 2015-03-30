@@ -31,6 +31,7 @@ class Database
     private:
         /* Forward declarations */
         struct Entry;
+        struct Accessor;
 
         /* Type definitions */
         class RegisterPath : public Traverse::Callback
