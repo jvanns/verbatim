@@ -206,6 +206,12 @@ Key::serialize(Archive &archive, unsigned int /* version */)
     archive & id & value;
 }
 
+ostream&
+operator<< (ostream &s, const Key &k)
+{
+    return s << k.id << k.value;
+}
+
 /*
  * verbatim::Database::Accessor
  */
@@ -366,7 +372,7 @@ Database::list_entries(ostream &stream) const
         i->getValue(e);
 
         stream <<
-            key.value << '\t' <<
+            key << '\t' <<
             tag.filename << '\t' <<
             tag.modified << '\t' <<
             tag.genre << '\t' <<
