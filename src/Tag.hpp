@@ -29,6 +29,7 @@ struct Img
     ByteVector data;
     std::string mimetype;
 
+    /* Member functions/methods */
     Img() : size(0) {}
 
     template<typename Archive>
