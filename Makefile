@@ -51,7 +51,8 @@ UTILITY_OBJS = src/utility/Timer.o \
 src/Database.o: lmdb
 VERBATIM_OBJS = src/Traverse.o \
 	src/Database.o \
-	src/Context.o
+	src/Context.o \
+	src/Tag.o
 
 # Tests
 test_delegate: src/tests/delegate.o
