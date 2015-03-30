@@ -109,6 +109,15 @@ ProcessError::ProcessError(const string &from,
     init(from, error, format); // va_end happens in here
 }
 
+ValueError::ValueError(const string &from,
+                       int error,
+                       const char *format,
+                       ...)
+{
+    va_start(args, format);
+    init(from, error, format); // va_end happens in here
+}
+
 ConversionError::ConversionError(const string &from,
                                  int error,
                                  const char *format,
