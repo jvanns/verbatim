@@ -371,14 +371,7 @@ Database::list_entries(ostream &stream) const
         Entry e(key, value);
         i->getValue(e);
 
-        stream <<
-            key << '\t' <<
-            tag.filename << '\t' <<
-            tag.modified << '\t' <<
-            tag.genre << '\t' <<
-            tag.artist << '\t' <<
-            tag.album << '\t' <<
-            tag.title << '\n';
+        stream << key << '\t' << tag << endl;
 
         ++entry_count;
     }
