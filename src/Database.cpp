@@ -349,7 +349,35 @@ size_t
 Database::list_entries(ostream &stream) const
 {
     assert(db != NULL); // open() must have been called first
-    return 0;
+
+    size_t entry_count = 0;
+
+    for (glim::Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
+        Key key;
+        i->getKey(key);
+
+        if (key.id != TAG_ID)
+            continue;
+
+        Tag tag;
+        Adapter<Tag> value(tag);
+
+        Entry e(key, value);
+        i->getValue(e);
+
+        stream <<
+            key.value << '\t' <<
+            tag.filename << '\t' <<
+            tag.modified << '\t' <<
+            tag.genre << '\t' <<
+            tag.artist << '\t' <<
+            tag.album << '\t' <<
+            tag.title << '\n';
+
+        ++entry_count;
+    }
+
+    return entry_count;
 }
 
 inline
