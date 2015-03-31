@@ -366,17 +366,34 @@ Database::list_entries(ostream &stream) const
         Key key;
         i->getKey(key);
 
-        if (key.id != TAG_ID)
-            continue;
+        switch (key.id) {
+            case NO_ID:
+                throw utility::ValueError("Database::list_entries",
+                                          0,
+                                          "Invalid ID (%d) in Key object",
+                                          key.id);
+                break;
+            case TAG_ID:
+                {
+                    Tag tag;
+                    Adapter<Tag> value(tag);
+                    Entry e(key, value);
 
-        Tag tag;
-        Adapter<Tag> value(tag);
+                    i->getValue(e);
+                    stream << key << '\t' << tag << endl;
+                }
+                break;
+            case IMG_ID:
+                {
+                    Img img;
+                    Adapter<Img> value(img);
+                    Entry e(key, value);
 
-        Entry e(key, value);
-        i->getValue(e);
-
-        stream << key << '\t' << tag << endl;
-
+                    i->getValue(e);
+                    stream << key << '\t' << img << endl;
+                }
+                break;
+        }
         ++entry_count;
     }
 
