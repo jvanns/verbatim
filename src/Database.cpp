@@ -16,12 +16,21 @@
 #include <taglib/id3v2tag.h>
 #include <taglib/attachedpictureframe.h>
 
+// boost serialization
+#include <boost/serialization/list.hpp>
+
+// libstdc++
+#include <list>
+
 // libc
 #include <assert.h>
 
 using std::endl;
+using std::list;
 using std::string;
 using std::ostream;
+
+using glim::Mdb;
 
 namespace {
 
@@ -151,6 +160,7 @@ struct Database::Entry
     serialize(Archive &archive, unsigned int /* version */);
 
     /* Attributes/member variables */
+    list<Key> links; /* References to other linked DB entries */
     const Key &key;
     Value &value;
     bool modified;
@@ -257,6 +267,7 @@ Database::Accessor::operator()()
             tag.title = tags->title().to8Bit();
             tag.artist = tags->artist().to8Bit();
 
+            tag_ent.links.push_back(img_key);
             tag_ent.modified = true;
         }
     }
@@ -298,6 +309,8 @@ Database::Entry::serialize(Archive &archive, unsigned int /* version */)
             }
             break;
     }
+
+    archive & links;
 }
 
 /*
@@ -307,12 +320,80 @@ Database::RegisterPath::RegisterPath(Database &d) : db(d)
 {
 }
 
+/*
+ * Free functions
+ */
+template<>
+Database::Entry
+retrieve(const Database &db, Key &key, Adapter<Tag> &val)
+{
+    Database::Entry e(key, val);
+    db.lookup(e);
+    return e;
+}
+
+template<>
+Database::Entry
+retrieve(Mdb::Iterator &it, Key &key, Adapter<Tag> &val)
+{
+    Database::Entry e(key, val);
+    it->getValue(e);
+    assert(e.key);
+    return e;
+}
+
+template<>
+Database::Entry
+retrieve(const Database &db, Key &key, Adapter<Img> &val)
+{
+    Database::Entry e(key, val);
+    db.lookup(e);
+    return e;
+}
+
+template<>
+Database::Entry
+retrieve(Mdb::Iterator &it, Key &key, Adapter<Img> &val)
+{
+    Database::Entry e(key, val);
+    it->getValue(e);
+    assert(e.key);
+    return e;
+}
+
+ostream&
+operator<< (ostream &s, const Database::Entry &e)
+{
+    switch (e.key.id) {
+        case NO_ID:
+            throw utility::ValueError("verbatim::operator<<",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      e.key.id);
+            break;
+        case TAG_ID:
+            {
+                Tag &tag = static_cast<Adapter<Tag>&>(e.value);
+                s << e.key << '\t' << tag;
+            }
+            break;
+        case IMG_ID:
+            {
+                Img &img = static_cast<Adapter<Img>&>(e.value);
+                s << e.key << '\t' << img;
+            }
+            break;
+    }
+
+    return s;
+}
+
 void
 Database::RegisterPath::operator() (const Traverse::Path &p)
 {
     db.update(p);
 }
- 
+
 /*
  * verbatim::Database 
  */
@@ -339,7 +420,7 @@ void
 Database::open(const string &path)
 {
     assert(db == NULL);
-    db = new glim::Mdb(path.c_str(), 256, "verbatim", 0, false, 0600);
+    db = new Mdb(path.c_str(), 256, "verbatim", 0, false, 0600);
     assert(db != NULL);
 }
 
@@ -360,9 +441,10 @@ Database::list_entries(ostream &stream) const
 {
     assert(db != NULL); // open() must have been called first
 
+    list<Key> links;
     size_t entry_count = 0;
 
-    for (glim::Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
+    for (Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
         Key key;
         i->getKey(key);
 
@@ -376,24 +458,55 @@ Database::list_entries(ostream &stream) const
             case TAG_ID:
                 {
                     Tag tag;
-                    Adapter<Tag> value(tag);
-                    Entry e(key, value);
+                    Adapter<Tag> val(tag);
+                    Entry e(retrieve(i, key, val));
 
-                    i->getValue(e);
-                    stream << key << '\t' << tag << endl;
+                    stream << e << endl;
+                    links = e.links;
                 }
                 break;
             case IMG_ID:
                 {
                     Img img;
-                    Adapter<Img> value(img);
-                    Entry e(key, value);
+                    Adapter<Img> val(img);
+                    Entry e(retrieve(i, key, val));
 
-                    i->getValue(e);
-                    stream << key << '\t' << img << endl;
+                    stream << e << endl;
+                    links = e.links;
                 }
                 break;
         }
+
+        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
+            switch (j->id) {
+                case NO_ID:
+                    throw utility::ValueError("Database::list_entries",
+                                              0,
+                                              "Invalid ID (%d) in Key object",
+                                              j->id);
+                    break;
+                case TAG_ID:
+                    {
+                        Tag tag;
+                        Adapter<Tag> val(tag);
+                        Entry e(retrieve(*this, *j, val));
+
+                        stream << "\n\t" << e << endl;
+                    }
+                    break;
+                case IMG_ID:
+                    {
+                        Img img;
+                        Adapter<Img> val(img);
+                        Entry e(retrieve(*this, *j, val));
+
+                        stream << "\n\t" << e << endl;
+                    }
+                    break;
+            }
+        }
+
+        links.clear();
         ++entry_count;
     }
 
