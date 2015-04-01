@@ -320,6 +320,12 @@ Database::RegisterPath::RegisterPath(Database &d) : db(d)
 {
 }
 
+void
+Database::RegisterPath::operator() (const Traverse::Path &p)
+{
+    db.update(p);
+}
+
 /*
  * Free functions
  */
@@ -386,12 +392,6 @@ operator<< (ostream &s, const Database::Entry &e)
     }
 
     return s;
-}
-
-void
-Database::RegisterPath::operator() (const Traverse::Path &p)
-{
-    db.update(p);
 }
 
 /*
