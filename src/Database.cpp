@@ -491,7 +491,7 @@ Database::list_entries(ostream &stream) const
                     Adapter<Tag> val(tag);
                     Entry e(retrieve(*this, *j, val));
 
-                    stream << "\n\t" << e << endl;
+                    stream << '\t' << e << endl;
                 }
                 break;
             case IMG_ID:
@@ -500,7 +500,7 @@ Database::list_entries(ostream &stream) const
                     Adapter<Img> val(img);
                     Entry e(retrieve(*this, *j, val));
 
-                    stream << "\n\t" << e << endl;
+                    stream << '\t' << e << endl;
                 }
                 break;
             }
