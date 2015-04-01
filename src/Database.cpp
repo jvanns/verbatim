@@ -240,9 +240,9 @@ void
 Database::Accessor::operator()()
 {
     Tag tag;
-    Adapter<Tag> tag_val(tag);
+    Adapter<Tag> tag_ref(tag);
     const Key tag_key(pathname);
-    Database::Entry tag_ent(tag_key, tag_val);
+    Database::Entry tag_ent(tag_key, tag_ref);
 
     if (!db.lookup(tag_ent) || tag.modified < modify_time) {
         const TagLib::FileRef file(pathname.c_str(), false);
@@ -250,9 +250,9 @@ Database::Accessor::operator()()
 
         if (tags) {
             Img img;
-            Adapter<Img> img_val(img);
+            Adapter<Img> img_ref(img);
             const Key img_key(tags);
-            Database::Entry img_ent(img_key, img_val);
+            Database::Entry img_ent(img_key, img_ref);
 
             if (!db.lookup(img_ent) && copy_img_tag_data(tags, img)) {
                 img_ent.modified = true;
