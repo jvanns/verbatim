@@ -290,24 +290,24 @@ void
 Database::Entry::serialize(Archive &archive, unsigned int /* version */)
 {
     switch (key.id) {
-        case NO_ID:
-            throw utility::ValueError("Database::Entry::serialize",
-                                      0,
-                                      "Invalid ID (%d) in Key object",
-                                      key.id);
-            break;
-        case TAG_ID:
-            {
-                Tag &tag = static_cast<Adapter<Tag>&>(value);
-                archive & tag;
-            }
-            break;
-        case IMG_ID:
-            {
-                Img &img = static_cast<Adapter<Img>&>(value);
-                archive & img;
-            }
-            break;
+    case NO_ID:
+        throw utility::ValueError("Database::Entry::serialize",
+                                  0,
+                                  "Invalid ID (%d) in Key object",
+                                  key.id);
+        break;
+    case TAG_ID:
+        {
+            Tag &tag = static_cast<Adapter<Tag>&>(value);
+            archive & tag;
+        }
+        break;
+    case IMG_ID:
+        {
+            Img &img = static_cast<Adapter<Img>&>(value);
+            archive & img;
+        }
+        break;
     }
 
     archive & links;
@@ -371,24 +371,24 @@ ostream&
 operator<< (ostream &s, const Database::Entry &e)
 {
     switch (e.key.id) {
-        case NO_ID:
-            throw utility::ValueError("verbatim::operator<<",
-                                      0,
-                                      "Invalid ID (%d) in Key object",
-                                      e.key.id);
-            break;
-        case TAG_ID:
-            {
-                Tag &tag = static_cast<Adapter<Tag>&>(e.value);
-                s << e.key << '\t' << tag;
-            }
-            break;
-        case IMG_ID:
-            {
-                Img &img = static_cast<Adapter<Img>&>(e.value);
-                s << e.key << '\t' << img;
-            }
-            break;
+    case NO_ID:
+        throw utility::ValueError("verbatim::operator<<",
+                                  0,
+                                  "Invalid ID (%d) in Key object",
+                                  e.key.id);
+        break;
+    case TAG_ID:
+        {
+            Tag &tag = static_cast<Adapter<Tag>&>(e.value);
+            s << e.key << '\t' << tag;
+        }
+        break;
+    case IMG_ID:
+        {
+            Img &img = static_cast<Adapter<Img>&>(e.value);
+            s << e.key << '\t' << img;
+        }
+        break;
     }
 
     return s;
@@ -449,60 +449,60 @@ Database::list_entries(ostream &stream) const
         i->getKey(key);
 
         switch (key.id) {
+        case NO_ID:
+            throw utility::ValueError("Database::list_entries",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      key.id);
+            break;
+        case TAG_ID:
+            {
+                Tag tag;
+                Adapter<Tag> val(tag);
+                Entry e(retrieve(i, key, val));
+
+                stream << e << endl;
+                links = e.links;
+            }
+            break;
+        case IMG_ID:
+            {
+                Img img;
+                Adapter<Img> val(img);
+                Entry e(retrieve(i, key, val));
+
+                stream << e << endl;
+                links = e.links;
+            }
+            break;
+        }
+
+        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
+            switch (j->id) {
             case NO_ID:
                 throw utility::ValueError("Database::list_entries",
                                           0,
                                           "Invalid ID (%d) in Key object",
-                                          key.id);
+                                          j->id);
                 break;
             case TAG_ID:
                 {
                     Tag tag;
                     Adapter<Tag> val(tag);
-                    Entry e(retrieve(i, key, val));
+                    Entry e(retrieve(*this, *j, val));
 
-                    stream << e << endl;
-                    links = e.links;
+                    stream << "\n\t" << e << endl;
                 }
                 break;
             case IMG_ID:
                 {
                     Img img;
                     Adapter<Img> val(img);
-                    Entry e(retrieve(i, key, val));
+                    Entry e(retrieve(*this, *j, val));
 
-                    stream << e << endl;
-                    links = e.links;
+                    stream << "\n\t" << e << endl;
                 }
                 break;
-        }
-
-        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
-            switch (j->id) {
-                case NO_ID:
-                    throw utility::ValueError("Database::list_entries",
-                                              0,
-                                              "Invalid ID (%d) in Key object",
-                                              j->id);
-                    break;
-                case TAG_ID:
-                    {
-                        Tag tag;
-                        Adapter<Tag> val(tag);
-                        Entry e(retrieve(*this, *j, val));
-
-                        stream << "\n\t" << e << endl;
-                    }
-                    break;
-                case IMG_ID:
-                    {
-                        Img img;
-                        Adapter<Img> val(img);
-                        Entry e(retrieve(*this, *j, val));
-
-                        stream << "\n\t" << e << endl;
-                    }
-                    break;
             }
         }
 
