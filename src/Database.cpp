@@ -255,6 +255,7 @@ Database::Accessor::operator()()
             Database::Entry img_ent(img_key, img_ref);
 
             if (!db.lookup(img_ent) && copy_img_tag_data(tags, img)) {
+                tag_ent.links.push_back(img_key);
                 img_ent.modified = true;
                 db.update(img_ent);
             }
@@ -267,12 +268,10 @@ Database::Accessor::operator()()
             tag.title = tags->title().to8Bit();
             tag.artist = tags->artist().to8Bit();
 
-            tag_ent.links.push_back(img_key);
             tag_ent.modified = true;
+            db.update(tag_ent);
         }
     }
-
-    db.update(tag_ent);
 }
 
 /*
