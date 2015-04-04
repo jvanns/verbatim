@@ -207,7 +207,7 @@ Key::Key(const TagLib::Tag *tags) : value(0), id(IMG_ID)
     const char *data = frame->picture().data();
     const size_t len = frame->picture().size();
 
-    value =  hasher(data, len);
+    value = hasher(data, len);
 }
 
 template<typename Archive>
@@ -262,7 +262,6 @@ Database::Accessor::operator()()
 
             tag.filename = pathname;
             tag.modified = modify_time;
-
             tag.genre = tags->genre().to8Bit();
             tag.album = tags->album().to8Bit();
             tag.title = tags->title().to8Bit();
