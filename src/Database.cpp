@@ -372,10 +372,6 @@ operator<< (ostream &s, const Database::Entry &e)
 {
     switch (e.key.id) {
     case NO_ID:
-        throw utility::ValueError("verbatim::operator<<",
-                                  0,
-                                  "Invalid ID (%d) in Key object",
-                                  e.key.id);
         break;
     case TAG_ID:
         {
