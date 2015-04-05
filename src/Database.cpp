@@ -179,12 +179,13 @@ Key::Key() : value(0), id(NO_ID)
 {
 }
 
-Key::Key(const string &s) : value(0), id(TAG_ID)
+Key::Key(const string &s) : value(0), id(NO_ID)
 {
     value = hasher(s.c_str(), s.size());
+    id = TAG_ID;
 }
 
-Key::Key(const TagLib::Tag *tags) : value(0), id(IMG_ID)
+Key::Key(const TagLib::Tag *tags) : value(0), id(NO_ID)
 {
     const TagLib::ID3v2::Tag *id3 =
         dynamic_cast<const TagLib::ID3v2::Tag*>(tags);
@@ -208,6 +209,7 @@ Key::Key(const TagLib::Tag *tags) : value(0), id(IMG_ID)
     const size_t len = frame->picture().size();
 
     value = hasher(data, len);
+    id = IMG_ID;
 }
 
 template<typename Archive>
