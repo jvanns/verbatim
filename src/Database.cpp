@@ -12,7 +12,7 @@
 
 // Taglib
 #include <taglib/tag.h>
-#include <taglib/fileref.h>
+#include <taglib/mpegfile.h>
 #include <taglib/id3v2tag.h>
 #include <taglib/attachedpictureframe.h>
 
@@ -50,15 +50,9 @@ enum TypeID
  */
 
 bool
-copy_img_tag_data(const TagLib::Tag *tags, verbatim::Img &img)
+copy_img_tag_data(const TagLib::ID3v2::Tag *tag, verbatim::Img &img)
 {
-    const TagLib::ID3v2::Tag *id3 =
-        dynamic_cast<const TagLib::ID3v2::Tag*>(tags);
-
-    if (!id3)
-        return false; // Not an ID3v2 tag. Perhaps an OGG or FLAC?
-
-    const TagLib::ID3v2::FrameList &frames = id3->frameList("APIC");
+    const TagLib::ID3v2::FrameList &frames = tag->frameList("APIC");
 
     if (frames.isEmpty())
         return false;
@@ -70,17 +64,16 @@ copy_img_tag_data(const TagLib::Tag *tags, verbatim::Img &img)
     TagLib::ID3v2::AttachedPictureFrame *frame =
         static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frames.front());
 
-    const char *data = frame->picture().data();
-    const size_t len = frame->picture().size();
-    verbatim::Img::ByteVector::iterator i(img.data.begin());
+    const TagLib::ByteVector bv(frame->picture());
 
-    if (len == 0)
+    if (bv.size() == 0)
         return false;
 
+    img.data.reserve(bv.size());
+    img.data.insert(img.data.begin(), bv.data(), bv.data() + bv.size());
+
+    img.size = bv.size();
     img.mimetype = frame->mimeType().to8Bit();
-    img.data.reserve(len);
-    copy(data, data + len, i);
-    img.size = len;
 
     return true;
 }
@@ -101,7 +94,7 @@ struct Key
     /* Methods/Member functions */
     Key();
     explicit Key(const string &s);
-    explicit Key(const TagLib::Tag *tags);
+    explicit Key(const TagLib::ID3v2::Tag *tag);
     inline operator bool() const { return value != 0; }
 
     template<typename Archive>
@@ -185,15 +178,9 @@ Key::Key(const string &s) : value(0), id(NO_ID)
     id = TAG_ID;
 }
 
-Key::Key(const TagLib::Tag *tags) : value(0), id(NO_ID)
+Key::Key(const TagLib::ID3v2::Tag *tag) : value(0), id(NO_ID)
 {
-    const TagLib::ID3v2::Tag *id3 =
-        dynamic_cast<const TagLib::ID3v2::Tag*>(tags);
-
-    if (!id3)
-        return; // Not an ID3v2 tag. Perhaps an OGG or FLAC?
-
-    const TagLib::ID3v2::FrameList &frames = id3->frameList("APIC");
+    const TagLib::ID3v2::FrameList &frames = tag->frameList("APIC");
 
     if (frames.isEmpty())
         return;
@@ -205,10 +192,12 @@ Key::Key(const TagLib::Tag *tags) : value(0), id(NO_ID)
     TagLib::ID3v2::AttachedPictureFrame *frame =
         static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frames.front());
 
-    const char *data = frame->picture().data();
-    const size_t len = frame->picture().size();
+    const TagLib::ByteVector bv(frame->picture());
 
-    value = hasher(data, len);
+    if (bv.size() == 0)
+        return;
+
+    value = hasher(bv.data(), bv.size());
     id = IMG_ID;
 }
 
@@ -241,37 +230,39 @@ Database::Accessor::Accessor(Database &d, const char *p, const time_t f) :
 void
 Database::Accessor::operator()()
 {
+    TagLib::MPEG::File f(pathname.c_str());
+
+    if (!(f.isValid() && f.hasID3v2Tag()))
+        return;
+
     Tag tag;
     Adapter<Tag> tag_ref(tag);
     const Key tag_key(pathname);
     Database::Entry tag_ent(tag_key, tag_ref);
 
     if (!db.lookup(tag_ent) || tag.modified < modify_time) {
-        const TagLib::FileRef file(pathname.c_str(), false);
-        const TagLib::Tag *tags = file.tag();
+        const TagLib::ID3v2::Tag *tags = f.ID3v2Tag();
 
-        if (tags) {
-            Img img;
-            Adapter<Img> img_ref(img);
-            const Key img_key(tags);
-            Database::Entry img_ent(img_key, img_ref);
+        Img img;
+        Adapter<Img> img_ref(img);
+        const Key img_key(tags);
+        Database::Entry img_ent(img_key, img_ref);
 
-            if (!db.lookup(img_ent) && copy_img_tag_data(tags, img)) {
-                tag_ent.links.push_back(img_key);
-                img_ent.modified = true;
-                db.update(img_ent);
-            }
-
-            tag.filename = pathname;
-            tag.modified = modify_time;
-            tag.genre = tags->genre().to8Bit();
-            tag.album = tags->album().to8Bit();
-            tag.title = tags->title().to8Bit();
-            tag.artist = tags->artist().to8Bit();
-
-            tag_ent.modified = true;
-            db.update(tag_ent);
+        if (!db.lookup(img_ent) && copy_img_tag_data(tags, img)) {
+            tag_ent.links.push_back(img_key);
+            img_ent.modified = true;
+            db.update(img_ent);
         }
+
+        tag.filename = pathname;
+        tag.modified = modify_time;
+        tag.genre = tags->genre().to8Bit();
+        tag.album = tags->album().to8Bit();
+        tag.title = tags->title().to8Bit();
+        tag.artist = tags->artist().to8Bit();
+
+        tag_ent.modified = true;
+        db.update(tag_ent);
     }
 }
 
