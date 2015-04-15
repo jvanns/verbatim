@@ -139,7 +139,7 @@ struct Database::Accessor
 
     /* Attributes/member variables */
     Database &db;
-    const string pathname;
+    const string path;
     const time_t modify_time;
 };
 
@@ -219,7 +219,7 @@ operator<< (ostream &s, const Key &k)
  */
 Database::Accessor::Accessor(Database &d, const char *p, const time_t f) :
     db(d),
-    pathname(p),
+    path(p),
     modify_time(f)
 {
 }
@@ -230,14 +230,14 @@ Database::Accessor::Accessor(Database &d, const char *p, const time_t f) :
 void
 Database::Accessor::operator()()
 {
-    TagLib::MPEG::File f(pathname.c_str());
+    TagLib::MPEG::File f(path.c_str());
 
     if (!(f.isValid() && f.hasID3v2Tag()))
         return;
 
     Tag tag;
     Adapter<Tag> tag_ref(tag);
-    const Key tag_key(pathname);
+    const Key tag_key(path);
     Database::Entry tag_ent(tag_key, tag_ref);
 
     if (!db.lookup(tag_ent) || tag.modified < modify_time) {
@@ -254,7 +254,7 @@ Database::Accessor::operator()()
             db.update(img_ent);
         }
 
-        tag.filename = pathname;
+        tag.filename = path;
         tag.modified = modify_time;
         tag.genre = tags->genre().to8Bit();
         tag.album = tags->album().to8Bit();
