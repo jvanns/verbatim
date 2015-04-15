@@ -236,16 +236,16 @@ Database::Accessor::operator()()
         return;
 
     Tag tag;
-    Adapter<Tag> tag_ref(tag);
     const Key tag_key(path);
+    Adapter<Tag> tag_ref(tag);
     Database::Entry tag_ent(tag_key, tag_ref);
 
     if (!db.lookup(tag_ent) || tag.modified < modify_time) {
         const TagLib::ID3v2::Tag *tags = f.ID3v2Tag();
 
         Img img;
-        Adapter<Img> img_ref(img);
         const Key img_key(tags);
+        Adapter<Img> img_ref(img);
         Database::Entry img_ent(img_key, img_ref);
 
         if (!db.lookup(img_ent) && copy_img_tag_data(tags, img)) {
