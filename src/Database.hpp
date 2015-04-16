@@ -14,6 +14,7 @@
 
 // libstdc++
 #include <string>
+#include <vector>
 #include <iostream>
 
 namespace verbatim {
@@ -26,7 +27,10 @@ class Database
         ~Database();
 
         void open(const std::string &path);
+
+        void aggregate_metrics();
         void print_metrics(std::ostream &stream) const;
+
         size_t list_entries(std::ostream &stream) const;
     private:
         /* Forward declarations */
@@ -43,9 +47,16 @@ class Database
                 Database &db;
         };
 
+        struct Metrics
+        {
+            size_t entries, updates;
+            Metrics() : entries(0), updates(0) {}
+        };
+
         /* Attributes/member variables */
         glim::Mdb *db;
         size_t entries, updates;
+        std::vector<Metrics> metrics; // Per-thread metrics
 
         Traverse &traverser;
         RegisterPath new_path;

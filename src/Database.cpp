@@ -391,6 +391,7 @@ Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(NULL),
     entries(0),
     updates(0),
+    metrics(tp.size()),
     traverser(t),
     new_path(*this),
     threads(tp)
@@ -503,6 +504,21 @@ Database::list_entries(ostream &stream) const
     return entry_count;
 }
 
+/*
+ * Sum all of the per-thread metrics
+ */
+void
+Database::aggregate_metrics()
+{
+    entries = 0;
+    updates = 0;
+
+    for (size_t i = 0 ; i < metrics.size() ; ++i) {
+        entries += metrics[i].entries;
+        updates += metrics[i].updates;
+    }
+}
+
 inline
 bool
 Database::lookup(Entry &e) const
@@ -514,16 +530,15 @@ inline
 void
 Database::update(const Entry &e)
 {
+    Metrics &m = metrics[threads.index()]; // Metrics of current thread
+
     if (e.modified) {
         assert(e.key);
         db->add(e.key, e);
     }
 
-    /*
-     * TODO: These may need to be protected by a mutex?
-     */
-    entries += 1;
-    updates += e.modified;
+    m.entries += 1;
+    m.updates += e.modified;
 }
 
 inline
