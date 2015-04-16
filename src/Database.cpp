@@ -95,7 +95,7 @@ struct Key
     Key();
     explicit Key(const string &s);
     explicit Key(const TagLib::ID3v2::Tag *tag);
-    inline operator bool() const { return value != 0; }
+    inline operator bool() const { return id != NO_ID && value != 0; }
 
     template<typename Archive>
     void
