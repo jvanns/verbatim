@@ -57,10 +57,10 @@ copy_img_tag_data(const TagLib::ID3v2::Tag *tag, verbatim::Img &img)
     if (frames.isEmpty())
         return false;
 
-    //
-    // Adds only the first in the list and this assumes
-    // it is the album cover, not the back or inside etc.
-    //
+    /*
+     * Adds only the first in the list and this assumes
+     * it is the album cover, not the back or inside etc.
+     */
     TagLib::ID3v2::AttachedPictureFrame *frame =
         static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frames.front());
 
@@ -185,10 +185,10 @@ Key::Key(const TagLib::ID3v2::Tag *tag) : value(0), id(NO_ID)
     if (frames.isEmpty())
         return;
 
-    //
-    // Consider only the first in the list and this assumes
-    // it is the album cover, not the back or inside etc.
-    //
+    /*
+     * Adds only the first in the list and this assumes
+     * it is the album cover, not the back or inside etc.
+     */
     TagLib::ID3v2::AttachedPictureFrame *frame =
         static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frames.front());
 
