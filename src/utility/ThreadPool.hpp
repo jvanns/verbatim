@@ -37,9 +37,9 @@ class ThreadPool {
         void restart(); // Won't restart, unless stopped
         void stop(); // Will block
         void wait(); // Will block
-        inline size_t size() const { return workers.size(); }
         size_t index() const; // Return index of executing worker
         template<typename Work> void submit(const Work &w);
+        inline size_t size() const { return workers.size(); }
     private:
         /* Member functions */
         void start(size_t threads);
