@@ -95,6 +95,24 @@ ThreadPool::wait()
     running = false;
 }
 
+size_t
+ThreadPool::index() const
+{
+    size_t i = 1, j = size();
+    const thread::id me(std::this_thread::get_id());
+
+    while (i < j) {
+        if (workers[i]->get_id() == me)
+            return i;
+
+        ++i;
+    }
+
+    assert(workers[0]->get_id() == me);
+
+    return 0;
+}
+
 void
 ThreadPool::start(size_t threads)
 {
