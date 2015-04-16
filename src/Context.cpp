@@ -30,6 +30,9 @@ void
 Context::wait()
 {
     threads->wait();
+
+    if (db)
+        db->aggregate_metrics();
 }
 
 void
