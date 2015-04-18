@@ -249,12 +249,10 @@ Database::Accessor::operator()()
             Adapter<Img> img_ref(img);
             Database::Entry img_ent(img_key, img_ref);
 
-            if (!db.lookup(img_ent) && copy_img_tag_data(tags, img)) {
-                img_ent.modified = true;
-                db.update(img_ent);
-            }
-
+            img_ent.modified = (!db.lookup(img_ent) &&
+                                copy_img_tag_data(tags, img));
             tag_ent.links.push_back(img_key);
+            db.update(img_ent);
         }
 
         tag.filename = path;
@@ -265,8 +263,9 @@ Database::Accessor::operator()()
         tag.artist = tags->artist().to8Bit();
 
         tag_ent.modified = true;
-        db.update(tag_ent);
     }
+
+    db.update(tag_ent);
 }
 
 /*
