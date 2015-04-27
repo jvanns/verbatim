@@ -32,10 +32,10 @@ test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 test_glim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system
 
 verbatim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-verbatim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag
+verbatim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag -lm
 
 verbatim-cat: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-verbatim-cat: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag
+verbatim-cat: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag -lm
 
 # lmdb submodule
 lmdb:
