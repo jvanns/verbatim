@@ -56,6 +56,8 @@ class Database
         /* Attributes/member variables */
         glim::Mdb *db;
         size_t entries, updates;
+
+        double spread; // Approximation of distribution efficiency
         std::vector<Metrics> metrics; // Per-thread metrics
 
         Traverse &traverser;

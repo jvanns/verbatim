@@ -23,6 +23,7 @@
 #include <list>
 
 // libc
+#include <math.h>
 #include <assert.h>
 
 using std::endl;
@@ -390,6 +391,7 @@ Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(NULL),
     entries(0),
     updates(0),
+    spread(0.0),
     metrics(tp.size()),
     traverser(t),
     new_path(*this),
@@ -423,7 +425,10 @@ Database::print_metrics(ostream &stream) const
         endl <<
         "verbatim[Database]: Total #updates = " <<
         updates <<
-        endl;
+        endl <<
+        "verbatim[Database]: Spread measure = ~" <<
+        spread <<
+        "%\n";
 }
 
 size_t
@@ -516,6 +521,30 @@ Database::aggregate_metrics()
         entries += metrics[i].entries;
         updates += metrics[i].updates;
     }
+
+    /*
+     * WUPT: Work Units Per Thread (ideal mean of)
+     *
+     * Using the target or ideal spread of queue items per worker thread (wupt)
+     * and the standard deviation (measure of variance of items per thread),
+     * display a rough measure of queue efficiency. Calculate and store it as
+     * the relative standard deviation (a percentage) for easier reading. Note
+     * that the value displayed is in fact the wupt minus the standard
+     * deviation so the higher the percentage the more efficient, or better
+     * spread, the work load is between the threads. The lower this number the
+     * less efficient verbatim has been - some threads did little while others
+     * did a lot and therefore not as many parallel tasks were issued as there
+     * could have been.
+     */
+
+    double n = metrics.size(),  wupt = entries / n, x = 0.0f, y = 0.0f;
+    for (size_t i = 0 ; i < metrics.size() ; ++i) {
+        y = metrics[i].entries - wupt;
+        x += (y * y);
+    }
+
+    x = wupt - sqrt(x / n);
+    spread = fabs(x / wupt) * 100.0f;
 }
 
 inline
