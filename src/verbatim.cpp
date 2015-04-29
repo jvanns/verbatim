@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 
     Context c(threads);
 
-    c.database().open(db_path);
+    c.database().update(db_path);
     c.traverser().scan(music_path);
 
     c.wait();
