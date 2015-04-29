@@ -128,22 +128,6 @@ template<typename Type> class Adapter : public Value
         Type &impl;
 };
 
-struct Database::Accessor
-{
-    /* Methods/Member functions */
-    Accessor(Database &d, const char *p, const time_t f);
-
-    /*
-     * Entry point for thread
-     */
-    void operator()();
-
-    /* Attributes/member variables */
-    Database &db;
-    const string path;
-    const time_t modify_time;
-};
-
 struct Database::Entry
 {
     /* Methods/Member functions */
@@ -158,6 +142,29 @@ struct Database::Entry
     const Key &key;
     Value &value;
     bool modified;
+};
+
+struct Database::Visitor
+{
+    /* Methods/Member functions */
+    virtual ~Visitor() {}
+    virtual void operator() (Database::Entry &e) = 0;
+};
+
+struct Database::Accessor
+{
+    /* Methods/Member functions */
+    Accessor(Database &d, const char *p, const time_t f);
+
+    /*
+     * Entry point for thread
+     */
+    void operator()();
+
+    /* Attributes/member variables */
+    Database &db;
+    const string path;
+    const time_t modify_time;
 };
 
 /*
@@ -216,6 +223,44 @@ operator<< (ostream &s, const Key &k)
 }
 
 /*
+ * verbatim::Database::Entry
+ */
+Database::Entry::Entry(const Key &k, Value &v) :
+    key(k),
+    value(v),
+    modified(false)
+{
+}
+
+template<typename Archive>
+void
+Database::Entry::serialize(Archive &archive, unsigned int /* version */)
+{
+    switch (key.id) {
+    case NO_ID:
+        throw utility::ValueError("Database::Entry::serialize",
+                                  0,
+                                  "Invalid ID (%d) in Key object",
+                                  key.id);
+        break;
+    case TAG_ID:
+        {
+            Tag &tag = static_cast<Adapter<Tag>&>(value);
+            archive & tag;
+        }
+        break;
+    case IMG_ID:
+        {
+            Img &img = static_cast<Adapter<Img>&>(value);
+            archive & img;
+        }
+        break;
+    }
+
+    archive & links;
+}
+
+/*
  * verbatim::Database::Accessor
  */
 Database::Accessor::Accessor(Database &d, const char *p, const time_t f) :
@@ -270,44 +315,6 @@ Database::Accessor::operator()()
 }
 
 /*
- * verbatim::Database::Entry
- */
-Database::Entry::Entry(const Key &k, Value &v) :
-    key(k),
-    value(v),
-    modified(false)
-{
-}
-
-template<typename Archive>
-void
-Database::Entry::serialize(Archive &archive, unsigned int /* version */)
-{
-    switch (key.id) {
-    case NO_ID:
-        throw utility::ValueError("Database::Entry::serialize",
-                                  0,
-                                  "Invalid ID (%d) in Key object",
-                                  key.id);
-        break;
-    case TAG_ID:
-        {
-            Tag &tag = static_cast<Adapter<Tag>&>(value);
-            archive & tag;
-        }
-        break;
-    case IMG_ID:
-        {
-            Img &img = static_cast<Adapter<Img>&>(value);
-            archive & img;
-        }
-        break;
-    }
-
-    archive & links;
-}
-
-/*
  * verbatim::Database::RegisterPath
  */
 Database::RegisterPath::RegisterPath(Database &d) : db(d)
@@ -319,6 +326,7 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
 {
     db.update(p);
 }
+
 
 /*
  * Free functions
@@ -384,6 +392,29 @@ operator<< (ostream &s, const Database::Entry &e)
     return s;
 }
 
+} // verbatim
+
+namespace {
+
+struct Printer : public verbatim::Database::Visitor
+{
+    /* Methods/Member functions */
+    Printer(ostream &s) : stream(s) {}
+
+    void operator() (verbatim::Database::Entry &e)
+    {
+        static_cast<verbatim::Database::Visitor&>(*this)(e);
+        stream << e << endl;
+    }
+
+    /* Attributes/member variables */
+    ostream &stream;
+};
+
+} // anonymous
+
+namespace verbatim {
+
 /*
  * verbatim::Database 
  */
@@ -417,6 +448,12 @@ Database::open(const string &path)
 }
 
 void
+Database::update(const string &path)
+{
+    open(path);
+}
+
+void
 Database::print_metrics(ostream &stream) const
 {
     stream <<
@@ -434,78 +471,8 @@ Database::print_metrics(ostream &stream) const
 size_t
 Database::list_entries(ostream &stream) const
 {
-    assert(db != NULL); // open() must have been called first
-
-    list<Key> links;
-    size_t entry_count = 0;
-
-    for (Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
-        Key key;
-        i->getKey(key);
-
-        switch (key.id) {
-        case NO_ID:
-            throw utility::ValueError("Database::list_entries",
-                                      0,
-                                      "Invalid ID (%d) in Key object",
-                                      key.id);
-            break;
-        case TAG_ID:
-            {
-                Tag tag;
-                Adapter<Tag> val(tag);
-                Entry e(retrieve(i, key, val));
-
-                stream << e << endl;
-                links = e.links;
-            }
-            break;
-        case IMG_ID:
-            {
-                Img img;
-                Adapter<Img> val(img);
-                Entry e(retrieve(i, key, val));
-
-                stream << e << endl;
-                links = e.links;
-            }
-            break;
-        }
-
-        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
-            switch (j->id) {
-            case NO_ID:
-                throw utility::ValueError("Database::list_entries",
-                                          0,
-                                          "Invalid ID (%d) in Key object",
-                                          j->id);
-                break;
-            case TAG_ID:
-                {
-                    Tag tag;
-                    Adapter<Tag> val(tag);
-                    Entry e(retrieve(*this, *j, val));
-
-                    stream << '\t' << e << endl;
-                }
-                break;
-            case IMG_ID:
-                {
-                    Img img;
-                    Adapter<Img> val(img);
-                    Entry e(retrieve(*this, *j, val));
-
-                    stream << '\t' << e << endl;
-                }
-                break;
-            }
-        }
-
-        links.clear();
-        ++entry_count;
-    }
-
-    return entry_count;
+    Printer p(stream);
+    return immutable_visit(p);
 }
 
 /*
@@ -545,6 +512,168 @@ Database::aggregate_metrics()
 
     x = wupt - sqrt(x / n);
     spread = fabs(x / wupt) * 100.0f;
+}
+
+size_t
+Database::mutable_visit(Visitor &v)
+{
+    assert(db != NULL); // open() must have been called first
+
+    list<Key> links;
+    size_t visits = 0;
+    const Database &self = *this;
+
+    for (Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
+        Key key;
+        i->getKey(key);
+
+        switch (key.id) {
+        case NO_ID:
+            throw utility::ValueError("Database::list_entries",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      key.id);
+            break;
+        case TAG_ID:
+            {
+                Tag tag;
+                Adapter<Tag> val(tag);
+                Entry e(retrieve(i, key, val));
+
+                v(e);
+                visits++;
+                links = e.links;
+            }
+            break;
+        case IMG_ID:
+            {
+                Img img;
+                Adapter<Img> val(img);
+                Entry e(retrieve(i, key, val));
+
+                v(e);
+                visits++;
+                links = e.links;
+            }
+            break;
+        }
+
+        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
+            switch (j->id) {
+            case NO_ID:
+                throw utility::ValueError("Database::list_entries",
+                                          0,
+                                          "Invalid ID (%d) in Key object",
+                                          j->id);
+                break;
+            case TAG_ID:
+                {
+                    Tag tag;
+                    Adapter<Tag> val(tag);
+                    Entry e(retrieve(self, *j, val));
+
+                    v(e);
+                    visits++;
+                }
+                break;
+            case IMG_ID:
+                {
+                    Img img;
+                    Adapter<Img> val(img);
+                    Entry e(retrieve(self, *j, val));
+
+                    v(e);
+                    visits++;
+                }
+                break;
+            }
+        }
+
+        links.clear();
+    }
+
+    return visits;
+}
+
+size_t
+Database::immutable_visit(Visitor &v) const
+{
+    assert(db != NULL); // open() must have been called first
+
+    list<Key> links;
+    size_t visits = 0;
+    const Database &self = *this;
+
+    for (Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
+        Key key;
+        i->getKey(key);
+
+        switch (key.id) {
+        case NO_ID:
+            throw utility::ValueError("Database::list_entries",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      key.id);
+            break;
+        case TAG_ID:
+            {
+                Tag tag;
+                Adapter<Tag> val(tag);
+                Entry e(retrieve(i, key, val));
+
+                v(e);
+                visits++;
+                links = e.links;
+            }
+            break;
+        case IMG_ID:
+            {
+                Img img;
+                Adapter<Img> val(img);
+                Entry e(retrieve(i, key, val));
+
+                v(e);
+                visits++;
+                links = e.links;
+            }
+            break;
+        }
+
+        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
+            switch (j->id) {
+            case NO_ID:
+                throw utility::ValueError("Database::list_entries",
+                                          0,
+                                          "Invalid ID (%d) in Key object",
+                                          j->id);
+                break;
+            case TAG_ID:
+                {
+                    Tag tag;
+                    Adapter<Tag> val(tag);
+                    Entry e(retrieve(self, *j, val));
+
+                    v(e);
+                    visits++;
+                }
+                break;
+            case IMG_ID:
+                {
+                    Img img;
+                    Adapter<Img> val(img);
+                    Entry e(retrieve(self, *j, val));
+
+                    v(e);
+                    visits++;
+                }
+                break;
+            }
+        }
+
+        links.clear();
+    }
+
+    return visits;
 }
 
 inline

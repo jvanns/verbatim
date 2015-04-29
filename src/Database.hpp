@@ -22,11 +22,16 @@ namespace verbatim {
 class Database
 {
     public:
+        /* Forward declarations */
+        struct Entry;
+        struct Visitor;
+
         /* Methods/Member functions */
         Database(Traverse &t, utility::ThreadPool &tp);
         ~Database();
 
         void open(const std::string &path);
+        void update(const std::string &path);
 
         void aggregate_metrics();
         void print_metrics(std::ostream &stream) const;
@@ -34,7 +39,6 @@ class Database
         size_t list_entries(std::ostream &stream) const;
     private:
         /* Forward declarations */
-        struct Entry;
         struct Accessor;
 
         /* Type definitions */
@@ -64,6 +68,10 @@ class Database
         RegisterPath new_path;
 
         utility::ThreadPool &threads;
+
+        /* Methods/Member functions */
+        size_t mutable_visit(Visitor &v);
+        size_t immutable_visit(Visitor &v) const;
 
         /* Methods/Member functions (Entry) */
         bool lookup(Entry &e) const;
