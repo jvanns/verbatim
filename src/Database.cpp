@@ -144,13 +144,6 @@ struct Database::Entry
     bool modified;
 };
 
-struct Database::Visitor
-{
-    /* Methods/Member functions */
-    virtual ~Visitor() {}
-    virtual void operator() (Database::Entry &e) = 0;
-};
-
 struct Database::Accessor
 {
     /* Methods/Member functions */
@@ -165,6 +158,12 @@ struct Database::Accessor
     Database &db;
     const string path;
     const time_t modify_time;
+};
+
+struct Database::VisitorBase
+{
+    virtual ~VisitorBase() {}
+    virtual void operator() (Database::Entry &e) = 0;
 };
 
 /*
@@ -327,9 +326,8 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
     db.update(p);
 }
 
-
 /*
- * Free functions
+ * Friends (of verbatim::Database)
  */
 template<>
 Database::Entry
@@ -392,28 +390,42 @@ operator<< (ostream &s, const Database::Entry &e)
     return s;
 }
 
-} // verbatim
+template<typename Impl>
+class Visitor : public Database::VisitorBase
+{
+    public:
+        /* Methods/Member functions */
+        Visitor() : entry(NULL) {}
+        virtual ~Visitor() {}
+        virtual void operator() () = 0;
 
-namespace {
+        inline void operator() (Database::Entry &e)
+        {
+            Impl &impl = static_cast<Impl&>(*this);
+            entry = &e;
+            impl();
+        }
+    private:
+        /* Attributes/member variables */
+        Database::Entry *entry;
 
-struct Printer : public verbatim::Database::Visitor
+        friend Impl;
+};
+
+struct Printer : public Visitor<Printer>
 {
     /* Methods/Member functions */
     Printer(ostream &s) : stream(s) {}
+    virtual ~Printer() {}
 
-    void operator() (verbatim::Database::Entry &e)
+    void operator() ()
     {
-        static_cast<verbatim::Database::Visitor&>(*this)(e);
-        stream << e << endl;
+        stream << *entry << endl;
     }
 
     /* Attributes/member variables */
     ostream &stream;
 };
-
-} // anonymous
-
-namespace verbatim {
 
 /*
  * verbatim::Database 
@@ -515,7 +527,7 @@ Database::aggregate_metrics()
 }
 
 size_t
-Database::mutable_visit(Visitor &v)
+Database::mutable_visit(VisitorBase &v)
 {
     assert(db != NULL); // open() must have been called first
 
@@ -596,7 +608,7 @@ Database::mutable_visit(Visitor &v)
 }
 
 size_t
-Database::immutable_visit(Visitor &v) const
+Database::immutable_visit(VisitorBase &v) const
 {
     assert(db != NULL); // open() must have been called first
 
