@@ -167,6 +167,14 @@ struct Database::VisitorBase
 };
 
 /*
+ * The friends
+ */
+template<typename Impl> class Visitor;
+template<typename Store, typename Key, typename Value>
+Database::Entry retrieve(Store &s, Key &k, Value &v);
+std::ostream& operator<< (std::ostream &s, const Database::Entry &e);
+
+/*
  * Implementations
  */
 
@@ -329,6 +337,43 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
 /*
  * Friends (of verbatim::Database)
  */
+template<typename Impl>
+class Visitor : public Database::VisitorBase
+{
+    public:
+        /* Methods/Member functions */
+        Visitor() : entry(NULL) {}
+        virtual ~Visitor() {}
+        virtual void operator() () = 0;
+
+        inline void operator() (Database::Entry &e)
+        {
+            Impl &impl = static_cast<Impl&>(*this);
+            entry = &e;
+            impl();
+        }
+    private:
+        /* Attributes/member variables */
+        Database::Entry *entry;
+
+        friend Impl;
+};
+
+struct Printer : public Visitor<Printer>
+{
+    /* Methods/Member functions */
+    Printer(ostream &s) : stream(s) {}
+    virtual ~Printer() {}
+
+    void operator() ()
+    {
+        stream << *entry << endl;
+    }
+
+    /* Attributes/member variables */
+    ostream &stream;
+};
+
 template<>
 Database::Entry
 retrieve(const Database &db, Key &key, Adapter<Tag> &val)
@@ -389,43 +434,6 @@ operator<< (ostream &s, const Database::Entry &e)
 
     return s;
 }
-
-template<typename Impl>
-class Visitor : public Database::VisitorBase
-{
-    public:
-        /* Methods/Member functions */
-        Visitor() : entry(NULL) {}
-        virtual ~Visitor() {}
-        virtual void operator() () = 0;
-
-        inline void operator() (Database::Entry &e)
-        {
-            Impl &impl = static_cast<Impl&>(*this);
-            entry = &e;
-            impl();
-        }
-    private:
-        /* Attributes/member variables */
-        Database::Entry *entry;
-
-        friend Impl;
-};
-
-struct Printer : public Visitor<Printer>
-{
-    /* Methods/Member functions */
-    Printer(ostream &s) : stream(s) {}
-    virtual ~Printer() {}
-
-    void operator() ()
-    {
-        stream << *entry << endl;
-    }
-
-    /* Attributes/member variables */
-    ostream &stream;
-};
 
 /*
  * verbatim::Database 

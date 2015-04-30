@@ -78,21 +78,15 @@ class Database
         /* Methods/Member functions (Path) */
         void update(const Traverse::Path &p);
 
-        /* Friend functions */
+        /* Friend classes */
         template<typename Impl>
         friend class Visitor;
+
+        /* Friend functions */
         template<typename Store, typename Key, typename Value>
         friend Entry retrieve(Store &s, Key &k, Value &v);
         friend std::ostream& operator<< (std::ostream &s, const Entry &e);
 };
-
-/*
- * Declarations of the above friends
- */
-template<typename Store, typename Key, typename Value>
-Database::Entry retrieve(Store &s, Key &k, Value &v);
-
-std::ostream& operator<< (std::ostream &s, const Database::Entry &e);
 
 } // verbatim
 
