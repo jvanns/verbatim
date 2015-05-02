@@ -25,6 +25,7 @@
 // libc
 #include <math.h>
 #include <assert.h>
+#include <unistd.h>
 
 using std::endl;
 using std::list;
@@ -141,13 +142,16 @@ struct Database::Entry
     list<Key> links; /* References to other linked DB entries */
     const Key &key;
     Value &value;
-    bool modified;
+
+    size_t added,
+           removed,
+           updated;
 };
 
-struct Database::Accessor
+struct Database::Updater
 {
     /* Methods/Member functions */
-    Accessor(Database &d, const char *p, const time_t f);
+    Updater(Database &d, const char *p, const time_t f);
 
     /*
      * Entry point for thread
@@ -158,6 +162,20 @@ struct Database::Accessor
     Database &db;
     const string path;
     const time_t modify_time;
+};
+
+struct Database::Remover
+{
+    /* Methods/Member functions */
+    Remover(Database &d);
+
+    /*
+     * Entry point for thread
+     */
+    void operator()();
+
+    /* Attributes/member variables */
+    Database &db;
 };
 
 struct Database::VisitorBase
@@ -173,6 +191,74 @@ template<typename Impl> class Visitor;
 template<typename Store, typename Key, typename Value>
 Database::Entry retrieve(Store &s, Key &k, Value &v);
 std::ostream& operator<< (std::ostream &s, const Database::Entry &e);
+
+template<typename Impl>
+class Visitor : public Database::VisitorBase
+{
+    public:
+        /* Methods/Member functions */
+        Visitor() : entry(NULL) {}
+        virtual ~Visitor() {}
+        virtual void operator() () = 0;
+
+        inline void operator() (Database::Entry &e)
+        {
+            Impl &impl = static_cast<Impl&>(*this);
+            entry = &e;
+            impl();
+        }
+    private:
+        /* Attributes/member variables */
+        Database::Entry *entry;
+
+        friend Impl;
+};
+
+struct Printer : public Visitor<Printer>
+{
+    /* Methods/Member functions */
+    Printer(ostream &s) : stream(s) {}
+    virtual ~Printer() {}
+
+    void operator() ()
+    {
+        stream << *entry << endl;
+    }
+
+    /* Attributes/member variables */
+    ostream &stream;
+};
+
+struct Verifier : public Visitor<Verifier>
+{
+    /* Methods/Member functions */
+    Verifier(Database &d) : db(d) {}
+    virtual ~Verifier() {}
+
+    void operator() ()
+    {
+        if (entry->key.id != TAG_ID)
+            return;
+
+        const Tag &tag = static_cast<Adapter<Tag>&>(entry->value);
+        if (access(tag.filename.c_str(), F_OK) == 0)
+            return;
+
+        /*
+         * FIXME: Remove any Img entry too and any other entry
+         * that references it.
+         */
+
+        /*
+         * If the file doesn't exist anymore, remove the entry
+         */
+        entry->removed = 1;
+        db.update(*entry);
+    }
+
+    /* Attributes/member variables */
+    Database &db;
+};
 
 /*
  * Implementations
@@ -235,7 +321,9 @@ operator<< (ostream &s, const Key &k)
 Database::Entry::Entry(const Key &k, Value &v) :
     key(k),
     value(v),
-    modified(false)
+    added(0),
+    removed(0),
+    updated(0)
 {
 }
 
@@ -268,9 +356,9 @@ Database::Entry::serialize(Archive &archive, unsigned int /* version */)
 }
 
 /*
- * verbatim::Database::Accessor
+ * verbatim::Database::Updater
  */
-Database::Accessor::Accessor(Database &d, const char *p, const time_t f) :
+Database::Updater::Updater(Database &d, const char *p, const time_t f) :
     db(d),
     path(p),
     modify_time(f)
@@ -281,7 +369,7 @@ Database::Accessor::Accessor(Database &d, const char *p, const time_t f) :
  * Entry point for thread
  */
 void
-Database::Accessor::operator()()
+Database::Updater::operator()()
 {
     TagLib::MPEG::File f(path.c_str());
 
@@ -302,11 +390,14 @@ Database::Accessor::operator()()
             Adapter<Img> img_ref(img);
             Database::Entry img_ent(img_key, img_ref);
 
-            img_ent.modified = (!db.lookup(img_ent) &&
-                                copy_img_tag_data(tags, img));
+            img_ent.added = (!db.lookup(img_ent) &&
+                              copy_img_tag_data(tags, img));
             tag_ent.links.push_back(img_key);
             db.update(img_ent);
         }
+
+        tag_ent.added = tag.modified == 0;
+        tag_ent.updated = !tag_ent.added;
 
         tag.filename = path;
         tag.modified = modify_time;
@@ -314,11 +405,26 @@ Database::Accessor::operator()()
         tag.album = tags->album().to8Bit();
         tag.title = tags->title().to8Bit();
         tag.artist = tags->artist().to8Bit();
-
-        tag_ent.modified = true;
     }
 
     db.update(tag_ent);
+}
+
+/*
+ * verbatim::Database::Remover
+ */
+Database::Remover::Remover(Database &d) : db(d)
+{
+}
+
+/*
+ * Entry point for thread
+ */
+void
+Database::Remover::operator()()
+{
+    Verifier v(db);
+    db.mutable_visit(v);
 }
 
 /*
@@ -333,46 +439,6 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
 {
     db.update(p);
 }
-
-/*
- * Friends (of verbatim::Database)
- */
-template<typename Impl>
-class Visitor : public Database::VisitorBase
-{
-    public:
-        /* Methods/Member functions */
-        Visitor() : entry(NULL) {}
-        virtual ~Visitor() {}
-        virtual void operator() () = 0;
-
-        inline void operator() (Database::Entry &e)
-        {
-            Impl &impl = static_cast<Impl&>(*this);
-            entry = &e;
-            impl();
-        }
-    private:
-        /* Attributes/member variables */
-        Database::Entry *entry;
-
-        friend Impl;
-};
-
-struct Printer : public Visitor<Printer>
-{
-    /* Methods/Member functions */
-    Printer(ostream &s) : stream(s) {}
-    virtual ~Printer() {}
-
-    void operator() ()
-    {
-        stream << *entry << endl;
-    }
-
-    /* Attributes/member variables */
-    ostream &stream;
-};
 
 template<>
 Database::Entry
@@ -440,10 +506,8 @@ operator<< (ostream &s, const Database::Entry &e)
  */
 Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(NULL),
-    entries(0),
-    updates(0),
     spread(0.0),
-    metrics(tp.size()),
+    metrics(tp.size() + 1),
     traverser(t),
     new_path(*this),
     threads(tp)
@@ -470,18 +534,26 @@ Database::open(const string &path)
 void
 Database::update(const string &path)
 {
+    const Remover r(*this);
     open(path);
+    threads.submit(r);
 }
 
 void
 Database::print_metrics(ostream &stream) const
 {
     stream <<
-        "verbatim[Database]: Total #entries = " <<
-        entries <<
+        "verbatim[Database]: Total #added = " <<
+        metrics[0].added <<
         endl <<
-        "verbatim[Database]: Total #updates = " <<
-        updates <<
+        "verbatim[Database]: Total #removed = " <<
+        metrics[0].removed <<
+        endl <<
+        "verbatim[Database]: Total #updated = " <<
+        metrics[0].updated <<
+        endl <<
+        "verbatim[Database]: Total #entries = " <<
+        metrics[0].entries <<
         endl <<
         "verbatim[Database]: Spread measure = ~" <<
         spread <<
@@ -501,12 +573,13 @@ Database::list_entries(ostream &stream) const
 void
 Database::aggregate_metrics()
 {
-    entries = 0;
-    updates = 0;
+    Metrics &aggregate = metrics[0];
 
-    for (size_t i = 0 ; i < metrics.size() ; ++i) {
-        entries += metrics[i].entries;
-        updates += metrics[i].updates;
+    for (size_t i = 1 ; i < metrics.size() ; ++i) {
+        aggregate.added += metrics[i].added;
+        aggregate.removed += metrics[i].removed;
+        aggregate.updated += metrics[i].updated;
+        aggregate.entries += metrics[i].entries;
     }
 
     /*
@@ -524,8 +597,9 @@ Database::aggregate_metrics()
      * could have been.
      */
 
-    double n = metrics.size(),  wupt = entries / n, x = 0.0f, y = 0.0f;
-    for (size_t i = 0 ; i < metrics.size() ; ++i) {
+    double n = metrics.size() - 1,
+           wupt = metrics[0].entries / n, x = 0.0f, y = 0.0f;
+    for (size_t i = 1 ; i < metrics.size() ; ++i) {
         y = metrics[i].entries - wupt;
         x += (y * y);
     }
@@ -707,15 +781,20 @@ inline
 void
 Database::update(const Entry &e)
 {
-    Metrics &m = metrics[threads.index()]; // Metrics of current thread
+    Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
 
-    if (e.modified) {
-        assert(e.key);
+    assert(e.key);
+    if (e.added || e.updated) {
         db->add(e.key, e);
+        m.entries++;
+    } else if (e.removed) {
+        db->erase(e.key);
+        m.entries--;
     }
 
-    m.entries += 1;
-    m.updates += e.modified;
+    m.added += e.added;
+    m.removed += e.removed;
+    m.updated += e.updated;
 }
 
 inline
@@ -728,8 +807,8 @@ Database::update(const Traverse::Path &p)
      * Add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        const Accessor a(*this, p.name, p.info->st_mtime);
-        threads.submit(a);
+        const Updater u(*this, p.name, p.info->st_mtime);
+        threads.submit(u);
     }
 }
 

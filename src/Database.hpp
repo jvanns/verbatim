@@ -29,14 +29,20 @@ class Database
         void open(const std::string &path);
         void update(const std::string &path);
 
+        /*
+         * FIXME: Move back to private visibility
+         */
+        struct Entry;
+        void update(const Entry &e);
+
         void aggregate_metrics();
         void print_metrics(std::ostream &stream) const;
 
         size_t list_entries(std::ostream &stream) const;
     private:
         /* Forward declarations */
-        struct Entry;
-        struct Accessor;
+        struct Updater;
+        struct Remover;
         struct VisitorBase;
 
         /* Type definitions */
@@ -51,13 +57,12 @@ class Database
 
         struct Metrics
         {
-            size_t entries, updates;
-            Metrics() : entries(0), updates(0) {}
+            ssize_t entries, added, removed, updated;
+            Metrics() : entries(0), added(0), removed(0), updated(0) {}
         };
 
         /* Attributes/member variables */
         glim::Mdb *db;
-        size_t entries, updates;
 
         double spread; // Approximation of distribution efficiency
         std::vector<Metrics> metrics; // Per-thread metrics
@@ -73,7 +78,6 @@ class Database
 
         /* Methods/Member functions (Entry) */
         bool lookup(Entry &e) const;
-        void update(const Entry &e);
 
         /* Methods/Member functions (Path) */
         void update(const Traverse::Path &p);
