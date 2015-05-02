@@ -1,3 +1,6 @@
 [submodule "sub/lmdb"]
 	path = sub/lmdb
 	url = https://gitorious.org/mdb/mdb.git
+[submodule "sub/lmdbxx"]
+	path = sub/lmdbxx
+	url = https://github.com/bendiken/lmdbxx.git
