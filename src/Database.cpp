@@ -18,21 +18,25 @@
 
 // boost serialization
 #include <boost/serialization/list.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 
 // libstdc++
 #include <list>
+#include <sstream>
 
 // libc
 #include <math.h>
 #include <assert.h>
 #include <unistd.h>
 
+// STL
 using std::endl;
 using std::list;
 using std::string;
 using std::ostream;
-
-using glim::Mdb;
+using std::istringstream;
+using std::ostringstream;
 
 namespace {
 
@@ -52,7 +56,7 @@ enum TypeID
  */
 
 bool
-copy_img_tag_data(const TagLib::ID3v2::Tag *tag, verbatim::Img &img)
+copy_img_data(const TagLib::ID3v2::Tag *tag, verbatim::Img &img)
 {
     const TagLib::ID3v2::FrameList &frames = tag->frameList("APIC");
 
@@ -80,6 +84,46 @@ copy_img_tag_data(const TagLib::ID3v2::Tag *tag, verbatim::Img &img)
     return true;
 }
 
+static const std::ios_base::openmode BINARY_STREAM = std::ios_base::in | \
+                                                     std::ios_base::out | \
+                                                     std::ios_base::binary;
+
+template<typename Type>
+Type
+reconstruct(const lmdb::val &serialised_data)
+{
+    Type value;
+    istringstream stream(BINARY_STREAM);
+    char *buf = const_cast<char*>(serialised_data.data());
+    boost::archive::binary_iarchive ba(stream, boost::archive::no_header);
+
+    stream.rdbuf()->pubsetbuf(buf, serialised_data.size());
+
+    ba >> value;
+    if (stream.fail())
+        throw verbatim::utility::StreamError("reconstruct()",
+                                             errno,
+                                             "Failed to serialise data");
+
+    return value;
+}
+
+template<typename Type>
+string
+deconstruct(const Type &value)
+{
+    ostringstream stream(BINARY_STREAM);
+    boost::archive::binary_oarchive ba(stream, boost::archive::no_header);
+
+    ba << value;
+    if (stream.fail())
+        throw verbatim::utility::StreamError("deconstruct()",
+                                             errno,
+                                             "Failed to serialise data");
+
+    return stream.str();
+}
+
 } // anonymous
 
 namespace verbatim {
@@ -97,7 +141,9 @@ struct Key
     Key();
     explicit Key(const string &s);
     explicit Key(const TagLib::ID3v2::Tag *tag);
-    inline operator bool() const { return id != NO_ID && value != 0; }
+
+    operator bool() const;
+    bool operator== (const Key &other) const;
 
     template<typename Archive>
     void
@@ -109,39 +155,21 @@ struct Key
     static const utility::Hash hasher;
 };
 
-class Value
-{
-    protected:
-        /* Methods/Member functions */
-        Value() {}
-        virtual ~Value() {}
-};
-
-template<typename Type> class Adapter : public Value
-{
-    public:
-        /* Methods/Member functions */
-        explicit Adapter(Type &t) : impl(t) {}
-        inline operator Type&() { return impl; }
-        inline operator const Type&() const { return impl; }
-    private:
-        /* Attributes/member variables */
-        Type &impl;
-};
-
-struct Database::Entry
+template<typename Value> struct Database::Entry
 {
     /* Methods/Member functions */
-    explicit Entry(const Key &k, Value &v);
+    Entry();
+    explicit Entry(const Key &k);
+    explicit Entry(const Key &k, const Value &v);
 
     template<typename Archive>
     void
     serialize(Archive &archive, unsigned int /* version */);
 
     /* Attributes/member variables */
+    Key key;
+    Value value;
     list<Key> links; /* References to other linked DB entries */
-    const Key &key;
-    Value &value;
 
     size_t added,
            removed,
@@ -178,70 +206,53 @@ struct Database::Remover
     Database &db;
 };
 
-struct Database::VisitorBase
-{
-    virtual ~VisitorBase() {}
-    virtual void operator() (Database::Entry &e) = 0;
-};
-
 /*
  * The friends
  */
-template<typename Impl> class Visitor;
-template<typename Store, typename Key, typename Value>
-Database::Entry retrieve(Store &s, Key &k, Value &v);
-std::ostream& operator<< (std::ostream &s, const Database::Entry &e);
-
-template<typename Impl>
-class Visitor : public Database::VisitorBase
+template<typename Impl> class Database::Visitor
 {
     public:
         /* Methods/Member functions */
-        Visitor() : entry(NULL) {}
-        virtual ~Visitor() {}
-        virtual void operator() () = 0;
-
-        inline void operator() (Database::Entry &e)
+        template<typename T>
+        inline
+        void operator() (Database::Entry<T> &e)
         {
             Impl &impl = static_cast<Impl&>(*this);
-            entry = &e;
-            impl();
+            impl(e);
         }
-    private:
-        /* Attributes/member variables */
-        Database::Entry *entry;
-
-        friend Impl;
 };
 
-struct Printer : public Visitor<Printer>
+struct Printer : public Database::Visitor<Printer>
 {
     /* Methods/Member functions */
     Printer(ostream &s) : stream(s) {}
     virtual ~Printer() {}
 
-    void operator() ()
+    template<typename T>
+    inline
+    void operator() (Database::Entry<T> &e)
     {
-        stream << *entry << endl;
+        stream << e << endl;
     }
 
     /* Attributes/member variables */
     ostream &stream;
 };
 
-struct Verifier : public Visitor<Verifier>
+struct Verifier : public Database::Visitor<Verifier>
 {
     /* Methods/Member functions */
     Verifier(Database &d) : db(d) {}
     virtual ~Verifier() {}
 
-    void operator() ()
+    template<typename T>
+    inline
+    void operator() (Database::Entry<T> &e)
     {
-        if (entry->key.id != TAG_ID)
+        if (e.key.id != TAG_ID)
             return;
 
-        const Tag &tag = static_cast<Adapter<Tag>&>(entry->value);
-        if (access(tag.filename.c_str(), F_OK) == 0)
+        if (access(e.value.tag.filename.c_str(), F_OK) == 0)
             return;
 
         /*
@@ -252,8 +263,8 @@ struct Verifier : public Visitor<Verifier>
         /*
          * If the file doesn't exist anymore, remove the entry
          */
-        entry->removed = 1;
-        db.update(*entry);
+        e.removed = 1;
+        db.update(e);
     }
 
     /* Attributes/member variables */
@@ -302,6 +313,19 @@ Key::Key(const TagLib::ID3v2::Tag *tag) : value(0), id(NO_ID)
     id = IMG_ID;
 }
 
+inline
+Key::operator bool() const
+{
+    return id != NO_ID && value != 0;
+}
+
+inline
+bool
+Key::operator== (const Key &other) const
+{
+    return id == other.id && value == other.value;
+}
+
 template<typename Archive>
 void
 Key::serialize(Archive &archive, unsigned int /* version */)
@@ -318,7 +342,22 @@ operator<< (ostream &s, const Key &k)
 /*
  * verbatim::Database::Entry
  */
-Database::Entry::Entry(const Key &k, Value &v) :
+template<typename Value>
+Database::Entry<Value>::Entry() : added(0), removed(0), updated(0)
+{
+}
+
+template<typename Value>
+Database::Entry<Value>::Entry(const Key &k) :
+    key(k),
+    added(0),
+    removed(0),
+    updated(0)
+{
+}
+
+template<typename Value>
+Database::Entry<Value>::Entry(const Key &k, const Value &v) :
     key(k),
     value(v),
     added(0),
@@ -327,32 +366,12 @@ Database::Entry::Entry(const Key &k, Value &v) :
 {
 }
 
+template<typename Value>
 template<typename Archive>
 void
-Database::Entry::serialize(Archive &archive, unsigned int /* version */)
+Database::Entry<Value>::serialize(Archive &archive, unsigned int /* version */)
 {
-    switch (key.id) {
-    case NO_ID:
-        throw utility::ValueError("Database::Entry::serialize",
-                                  0,
-                                  "Invalid ID (%d) in Key object",
-                                  key.id);
-        break;
-    case TAG_ID:
-        {
-            Tag &tag = static_cast<Adapter<Tag>&>(value);
-            archive & tag;
-        }
-        break;
-    case IMG_ID:
-        {
-            Img &img = static_cast<Adapter<Img>&>(value);
-            archive & img;
-        }
-        break;
-    }
-
-    archive & links;
+    archive & key & value & links;
 }
 
 /*
@@ -376,38 +395,35 @@ Database::Updater::operator()()
     if (!(f.isValid() && f.hasID3v2Tag()))
         return;
 
-    Tag tag;
     const Key tag_key(path);
-    Adapter<Tag> tag_ref(tag);
-    Database::Entry tag_ent(tag_key, tag_ref);
+    Database::Entry<Tag> tag_ent(tag_key);
 
-    if (!db.lookup(tag_ent) || tag.modified < modify_time) {
+    if (!db.lookup<Tag>(tag_ent) || tag_ent.value.modified < modify_time) {
         const TagLib::ID3v2::Tag *tags = f.ID3v2Tag();
         const Key img_key(tags);
 
         if (img_key) {
-            Img img;
-            Adapter<Img> img_ref(img);
-            Database::Entry img_ent(img_key, img_ref);
+            Database::Entry<Img> img_ent(img_key);
 
-            img_ent.added = (!db.lookup(img_ent) &&
-                              copy_img_tag_data(tags, img));
+            if (!db.lookup<Img>(img_ent) && copy_img_data(tags, img_ent.value))
+                img_ent.added = 1;
+
             tag_ent.links.push_back(img_key);
-            db.update(img_ent);
+            db.update<Img>(img_ent);
         }
 
-        tag_ent.added = tag.modified == 0;
+        tag_ent.added = tag_ent.value.modified == 0;
         tag_ent.updated = !tag_ent.added;
 
-        tag.filename = path;
-        tag.modified = modify_time;
-        tag.genre = tags->genre().to8Bit();
-        tag.album = tags->album().to8Bit();
-        tag.title = tags->title().to8Bit();
-        tag.artist = tags->artist().to8Bit();
+        tag_ent.value.filename = path;
+        tag_ent.value.modified = modify_time;
+        tag_ent.value.genre = tags->genre().to8Bit();
+        tag_ent.value.album = tags->album().to8Bit();
+        tag_ent.value.title = tags->title().to8Bit();
+        tag_ent.value.artist = tags->artist().to8Bit();
     }
 
-    db.update(tag_ent);
+    db.update<Tag>(tag_ent);
 }
 
 /*
@@ -424,7 +440,7 @@ void
 Database::Remover::operator()()
 {
     Verifier v(db);
-    db.mutable_visit(v);
+    db.visit<Verifier>(v);
 }
 
 /*
@@ -440,95 +456,30 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
     db.update(p);
 }
 
-template<>
-Database::Entry
-retrieve(const Database &db, Key &key, Adapter<Tag> &val)
-{
-    Database::Entry e(key, val);
-    db.lookup(e);
-    return e;
-}
-
-template<>
-Database::Entry
-retrieve(Mdb::Iterator &it, Key &key, Adapter<Tag> &val)
-{
-    Database::Entry e(key, val);
-    it->getValue(e);
-    assert(e.key);
-    return e;
-}
-
-template<>
-Database::Entry
-retrieve(const Database &db, Key &key, Adapter<Img> &val)
-{
-    Database::Entry e(key, val);
-    db.lookup(e);
-    return e;
-}
-
-template<>
-Database::Entry
-retrieve(Mdb::Iterator &it, Key &key, Adapter<Img> &val)
-{
-    Database::Entry e(key, val);
-    it->getValue(e);
-    assert(e.key);
-    return e;
-}
-
-ostream&
-operator<< (ostream &s, const Database::Entry &e)
-{
-    switch (e.key.id) {
-    case NO_ID:
-        break;
-    case TAG_ID:
-        {
-            Tag &tag = static_cast<Adapter<Tag>&>(e.value);
-            s << e.key << '\t' << tag;
-        }
-        break;
-    case IMG_ID:
-        {
-            Img &img = static_cast<Adapter<Img>&>(e.value);
-            s << e.key << '\t' << img;
-        }
-        break;
-    }
-
-    return s;
-}
-
 /*
  * verbatim::Database 
  */
 Database::Database(Traverse &t, utility::ThreadPool &tp) :
-    db(NULL),
+    db(lmdb::env::create()),
     spread(0.0),
     metrics(tp.size() + 1),
     traverser(t),
     new_path(*this),
     threads(tp)
 {
+    db.set_max_readers(tp.size());
+    db.set_mapsize((1024 * 1024) * 64); // 64MB
     traverser.register_callback(&new_path);
 }
 
 Database::~Database()
 {
-    if (db) {
-        delete db;
-        db = NULL;
-    }
 }
 
 void
 Database::open(const string &path)
 {
-    assert(db == NULL);
-    db = new Mdb(path.c_str(), 256, "verbatim", 0, false, 0600);
-    assert(db != NULL);
+    db.open(path.c_str(), 0, 0600);
 }
 
 void
@@ -564,7 +515,7 @@ size_t
 Database::list_entries(ostream &stream) const
 {
     Printer p(stream);
-    return immutable_visit(p);
+    return visit<Printer>(p);
 }
 
 /*
@@ -608,190 +559,91 @@ Database::aggregate_metrics()
     spread = fabs(x / wupt) * 100.0f;
 }
 
+template<typename Impl>
 size_t
-Database::mutable_visit(VisitorBase &v)
+Database::visit(Visitor<Impl> &v)
 {
-    assert(db != NULL); // open() must have been called first
-
-    list<Key> links;
     size_t visits = 0;
-    const Database &self = *this;
+    lmdb::val lmdb_key, lmdb_value;
+    lmdb::txn txn(lmdb::txn::begin(db));
+    lmdb::dbi dbi(lmdb::dbi::open(txn));
+    lmdb::cursor cur(lmdb::cursor::open(txn, dbi));
 
-    for (Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
-        Key key;
-        i->getKey(key);
-
-        switch (key.id) {
-        case NO_ID:
-            throw utility::ValueError("Database::list_entries",
-                                      0,
-                                      "Invalid ID (%d) in Key object",
-                                      key.id);
-            break;
-        case TAG_ID:
-            {
-                Tag tag;
-                Adapter<Tag> val(tag);
-                Entry e(retrieve(i, key, val));
-
-                v(e);
-                visits++;
-                links = e.links;
-            }
-            break;
-        case IMG_ID:
-            {
-                Img img;
-                Adapter<Img> val(img);
-                Entry e(retrieve(i, key, val));
-
-                v(e);
-                visits++;
-                links = e.links;
-            }
-            break;
-        }
-
-        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
-            switch (j->id) {
-            case NO_ID:
-                throw utility::ValueError("Database::list_entries",
-                                          0,
-                                          "Invalid ID (%d) in Key object",
-                                          j->id);
-                break;
-            case TAG_ID:
-                {
-                    Tag tag;
-                    Adapter<Tag> val(tag);
-                    Entry e(retrieve(self, *j, val));
-
-                    v(e);
-                    visits++;
-                }
-                break;
-            case IMG_ID:
-                {
-                    Img img;
-                    Adapter<Img> val(img);
-                    Entry e(retrieve(self, *j, val));
-
-                    v(e);
-                    visits++;
-                }
-                break;
-            }
-        }
-
-        links.clear();
+    while (cur.get(lmdb_key, lmdb_value, MDB_NEXT)) {
+        const Key key(reconstruct<Key>(lmdb_key));
+        ++visits;
     }
 
     return visits;
 }
 
+template<typename Impl>
 size_t
-Database::immutable_visit(VisitorBase &v) const
+Database::visit(Visitor<Impl> &v) const
 {
-    assert(db != NULL); // open() must have been called first
-
-    list<Key> links;
     size_t visits = 0;
-    const Database &self = *this;
+    lmdb::val lmdb_key, lmdb_value;
+    lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
+    lmdb::dbi dbi(lmdb::dbi::open(txn));
+    lmdb::cursor cur(lmdb::cursor::open(txn, dbi));
 
-    for (Mdb::Iterator i = db->begin() ; i != db->end() ; ++i) {
-        Key key;
-        i->getKey(key);
-
-        switch (key.id) {
-        case NO_ID:
-            throw utility::ValueError("Database::list_entries",
-                                      0,
-                                      "Invalid ID (%d) in Key object",
-                                      key.id);
-            break;
-        case TAG_ID:
-            {
-                Tag tag;
-                Adapter<Tag> val(tag);
-                Entry e(retrieve(i, key, val));
-
-                v(e);
-                visits++;
-                links = e.links;
-            }
-            break;
-        case IMG_ID:
-            {
-                Img img;
-                Adapter<Img> val(img);
-                Entry e(retrieve(i, key, val));
-
-                v(e);
-                visits++;
-                links = e.links;
-            }
-            break;
-        }
-
-        for (list<Key>::iterator j = links.begin() ; j != links.end() ; ++j) {
-            switch (j->id) {
-            case NO_ID:
-                throw utility::ValueError("Database::list_entries",
-                                          0,
-                                          "Invalid ID (%d) in Key object",
-                                          j->id);
-                break;
-            case TAG_ID:
-                {
-                    Tag tag;
-                    Adapter<Tag> val(tag);
-                    Entry e(retrieve(self, *j, val));
-
-                    v(e);
-                    visits++;
-                }
-                break;
-            case IMG_ID:
-                {
-                    Img img;
-                    Adapter<Img> val(img);
-                    Entry e(retrieve(self, *j, val));
-
-                    v(e);
-                    visits++;
-                }
-                break;
-            }
-        }
-
-        links.clear();
+    while (cur.get(lmdb_key, lmdb_value, MDB_NEXT)) {
+        const Key key(reconstruct<Key>(lmdb_key));
+        ++visits;
     }
 
     return visits;
 }
 
+template<typename Value>
 inline
 bool
-Database::lookup(Entry &e) const
+Database::lookup(Entry<Value> &e) const
 {
-    return db->first(e.key, e);
+    lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
+    lmdb::dbi dbi(lmdb::dbi::open(txn));
+
+    const Key k(e.key); // Copy for assert()
+    const string key(deconstruct<Key>(k));
+
+    lmdb::val lmdb_key(key), lmdb_val;
+    if (!dbi.get(txn, lmdb_key, lmdb_val))
+        return false;
+
+    e = reconstruct<Entry<Value> >(lmdb_val);
+    assert(e.key == k);
+
+    return true;
 }
 
+template<typename Value>
 inline
 void
-Database::update(const Entry &e)
+Database::update(const Entry<Value> &e)
 {
-    Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
-
     assert(e.key);
+
+    lmdb::txn txn(lmdb::txn::begin(db));
+    lmdb::dbi dbi(lmdb::dbi::open(txn));
+
+    const string key(deconstruct<Key>(e.key));
+    lmdb::val lmdb_key(key);
+
+    int x = 1;
+    Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
     if (e.added || e.updated) {
-        db->add(e.key, e);
-        m.entries++;
+        const string val(deconstruct<Entry<Value> >(e));
+        lmdb::val lmdb_val(val);
+
+        dbi.put(txn, lmdb_key, lmdb_val);
     } else if (e.removed) {
-        db->erase(e.key);
-        m.entries--;
+        dbi.del(txn, lmdb_key);
+        x = -1;
     }
 
+    txn.commit();
+
+    m.entries += x;
     m.added += e.added;
     m.removed += e.removed;
     m.updated += e.updated;
@@ -801,10 +653,8 @@ inline
 void
 Database::update(const Traverse::Path &p)
 {
-    assert(db != NULL); // open() must have been called first
-
     /*
-     * Add or update a DB entry (a key-value pair)
+     * Open the file, read the tags, add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
         const Updater u(*this, p.name, p.info->st_mtime);

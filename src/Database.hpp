@@ -9,8 +9,8 @@
 #include "Traverse.hpp"
 #include "utility/ThreadPool.hpp"
 
-// libglim
-#include "glim/mdb.hpp"
+// lmdb++
+#include "lmdbxx/lmdb++.h"
 
 // libstdc++
 #include <string>
@@ -29,21 +29,18 @@ class Database
         void open(const std::string &path);
         void update(const std::string &path);
 
-        /*
-         * FIXME: Move back to private visibility
-         */
-        struct Entry;
-        void update(const Entry &e);
-
         void aggregate_metrics();
         void print_metrics(std::ostream &stream) const;
 
         size_t list_entries(std::ostream &stream) const;
+    public:
+        /* Forward declarations */
+        template<typename Impl> class Visitor;
+        template<typename Value> struct Entry;
     private:
         /* Forward declarations */
         struct Updater;
         struct Remover;
-        struct VisitorBase;
 
         /* Type definitions */
         class RegisterPath : public Traverse::Callback
@@ -62,7 +59,7 @@ class Database
         };
 
         /* Attributes/member variables */
-        glim::Mdb *db;
+        lmdb::env db;
 
         double spread; // Approximation of distribution efficiency
         std::vector<Metrics> metrics; // Per-thread metrics
@@ -73,23 +70,18 @@ class Database
         utility::ThreadPool &threads;
 
         /* Methods/Member functions */
-        size_t mutable_visit(VisitorBase &v);
-        size_t immutable_visit(VisitorBase &v) const;
+        template<typename Impl> size_t visit(Visitor<Impl> &v);
+        template<typename Impl> size_t visit(Visitor<Impl> &v) const;
 
         /* Methods/Member functions (Entry) */
-        bool lookup(Entry &e) const;
+        template<typename Value> bool lookup(Entry<Value> &e) const;
+        template<typename Value> void update(const Entry<Value> &e);
 
         /* Methods/Member functions (Path) */
         void update(const Traverse::Path &p);
 
         /* Friend classes */
-        template<typename Impl>
-        friend class Visitor;
-
-        /* Friend functions */
-        template<typename Store, typename Key, typename Value>
-        friend Entry retrieve(Store &s, Key &k, Value &v);
-        friend std::ostream& operator<< (std::ostream &s, const Entry &e);
+        template<typename Impl> friend class Visitor;
 };
 
 } // verbatim
