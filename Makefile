@@ -12,7 +12,7 @@ CC ?= gcc
 CXX ?= g++
 LDLIBS ?=
 LDFLAGS ?=
-CPPFLAGS += -MMD -MP -Isrc -Iext -Isub -Wno-unused-local-typedefs
+CPPFLAGS += -MMD -MP -Isrc -Iext -Isub
 CXXFLAGS += -Wall -pedantic -Wno-long-long -std=c++11
 
 # Phony targets
