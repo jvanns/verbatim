@@ -24,12 +24,8 @@ src/Context.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/Database.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/verbatim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 src/verbatim-cat.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
-src/tests/glim.o: CPPFLAGS += -Isub/lmdb/libraries/liblmdb
 
 test_traverse: LDLIBS += -lboost_thread -lboost_system
-
-test_glim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
-test_glim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system
 
 verbatim: LDFLAGS += -Lsub/lmdb/libraries/liblmdb
 verbatim: LDLIBS += -llmdb -lboost_serialization -lboost_thread -lboost_system -ltag -lm
@@ -61,10 +57,6 @@ test_delegate: src/tests/delegate.o
 test_traverse: src/tests/traverse.o src/Traverse.o $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-src/tests/glim.o: lmdb
-test_glim: src/tests/glim.o $(UTILITY_OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-
 suffix_array: src/tests/suffix_array.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
@@ -75,7 +67,7 @@ verbatim: src/verbatim.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 verbatim-cat: src/verbatim-cat.o $(VERBATIM_OBJS) $(UTILITY_OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-tests: test_glim test_delegate test_traverse suffix_array
+tests: test_delegate test_traverse suffix_array
 all: tests verbatim verbatim-cat
 
 pkg:
