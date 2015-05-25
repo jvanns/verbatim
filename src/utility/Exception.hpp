@@ -73,6 +73,11 @@ struct ValueError : public Exception
     ValueError(const std::string &from, int error, const char *format,...);
 };
 
+struct StreamError : public Exception
+{
+    StreamError(const std::string &from, int error, const char *format,...);
+};
+
 struct ConversionError : public Exception
 {
     ConversionError(const std::string &from, int error, const char *format,...);
