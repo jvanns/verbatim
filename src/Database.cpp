@@ -17,12 +17,12 @@
 #include <taglib/attachedpictureframe.h>
 
 // boost serialization
-#include <boost/serialization/list.hpp>
+#include <boost/serialization/set.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
 // libstdc++
-#include <list>
+#include <set>
 #include <sstream>
 
 // libc
@@ -31,8 +31,8 @@
 #include <unistd.h>
 
 // STL
+using std::set;
 using std::endl;
-using std::list;
 using std::string;
 using std::ostream;
 using std::istringstream;
@@ -169,7 +169,7 @@ template<typename Value> struct Database::Entry
     /* Attributes/member variables */
     Key key;
     Value value;
-    list<Key> links; /* References to other linked DB entries */
+    set<Key> links; /* References to other linked DB entries */
 
     size_t added,
            removed,
@@ -408,7 +408,7 @@ Database::Updater::operator()()
             if (!db.lookup<Img>(img_ent) && copy_img_data(tags, img_ent.value))
                 img_ent.added = 1;
 
-            tag_ent.links.push_back(img_key);
+            tag_ent.links.insert(img_key);
             db.update<Img>(img_ent);
         }
 
