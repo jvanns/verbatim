@@ -527,6 +527,8 @@ Database::aggregate_metrics()
     Metrics &aggregate = metrics[0];
 
     for (size_t i = 1 ; i < metrics.size() ; ++i) {
+        metrics[i].entries += (metrics[i].added + metrics[i].updated) - metrics[i].removed;
+
         aggregate.added += metrics[i].added;
         aggregate.removed += metrics[i].removed;
         aggregate.updated += metrics[i].updated;
@@ -631,22 +633,25 @@ Database::update(const Entry<Value> &e)
 
     int x = 1;
     Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
+
     if (e.added || e.updated) {
         const string val(deconstruct<Entry<Value> >(e));
         lmdb::val lmdb_val(val);
 
         dbi.put(txn, lmdb_key, lmdb_val);
+        x = 0;
     } else if (e.removed) {
         dbi.del(txn, lmdb_key);
-        x = -1;
+        x = 0;
     }
-
-    txn.commit();
 
     m.entries += x;
     m.added += e.added;
     m.removed += e.removed;
     m.updated += e.updated;
+
+    if (!x)
+        txn.commit();
 }
 
 inline
