@@ -82,6 +82,13 @@ class Database
 
         /* Friend classes */
         template<typename Impl> friend class Visitor;
+
+        /* Friend functions */
+        template<typename Value> friend bool lookup(Database &db,
+                                                    Entry<Value> &e);
+
+        template<typename Value> friend void update(Database &db,
+                                                    Entry<Value> &e);
 };
 
 } // verbatim

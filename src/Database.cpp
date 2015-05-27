@@ -222,8 +222,35 @@ template<typename Impl> class Database::Visitor
             Impl &impl = static_cast<Impl&>(*this);
             impl(e);
         }
+
+        template<typename T>
+        inline
+        void operator() (const Database::Entry<T> &e)
+        {
+            Impl &impl = static_cast<Impl&>(*this);
+            impl(e);
+        }
 };
 
+template<typename Value>
+inline
+bool
+lookup(Database &db, Database::Entry<Value> &e)
+{
+    return db.lookup(e);
+}
+
+template<typename Value>
+inline
+void
+update(Database &db, Database::Entry<Value> &e)
+{
+    return db.update(e);
+}
+
+/*
+ * Visitor implementations
+ */
 struct Printer : public Database::Visitor<Printer>
 {
     /* Methods/Member functions */
@@ -232,9 +259,10 @@ struct Printer : public Database::Visitor<Printer>
 
     template<typename T>
     inline
-    void operator() (Database::Entry<T> &e)
+    void operator() (const Database::Entry<T> &e)
     {
-        stream << e << endl;
+        assert(e.key.id != NO_ID);
+        stream << e.key << '\t' << e.value << endl;
     }
 
     /* Attributes/member variables */
@@ -248,30 +276,40 @@ struct Verifier : public Database::Visitor<Verifier>
     virtual ~Verifier() {}
 
     template<typename T>
-    inline
-    void operator() (Database::Entry<T> &e)
-    {
-        if (e.key.id != TAG_ID)
-            return;
-
-        if (access(e.value.tag.filename.c_str(), F_OK) == 0)
-            return;
-
-        /*
-         * FIXME: Remove any Img entry too and any other entry
-         * that references it.
-         */
-
-        /*
-         * If the file doesn't exist anymore, remove the entry
-         */
-        e.removed = 1;
-        db.update(e);
-    }
+    void operator() (Database::Entry<T> &e); // See specialisations below
 
     /* Attributes/member variables */
     Database &db;
 };
+
+template<>
+inline
+void
+Verifier::operator()<Img> (Database::Entry<Img> &e)
+{
+}
+
+template<>
+inline
+void
+Verifier::operator()<Tag> (Database::Entry<Tag> &e)
+{
+    assert(e.key.id == TAG_ID);
+
+    if (access(e.value.filename.c_str(), F_OK) == 0)
+        return;
+
+    /*
+     * FIXME: Remove any Img entry too and any other entry
+     * that references it.
+     */
+
+    /*
+     * If the file doesn't exist anymore, remove the entry
+     */
+    e.removed = 1;
+    update(db, e);
+}
 
 /*
  * Implementations
@@ -575,13 +613,32 @@ size_t
 Database::visit(Visitor<Impl> &v)
 {
     size_t visits = 0;
-    lmdb::val lmdb_key, lmdb_value;
+    lmdb::val lmdb_key, lmdb_val;
     lmdb::txn txn(lmdb::txn::begin(db));
     lmdb::dbi dbi(lmdb::dbi::open(txn));
     lmdb::cursor cur(lmdb::cursor::open(txn, dbi));
 
-    while (cur.get(lmdb_key, lmdb_value, MDB_NEXT)) {
+    while (cur.get(lmdb_key, lmdb_val, MDB_NEXT)) {
         const Key key(reconstruct<Key>(lmdb_key));
+
+        switch (key.id) {
+        case NO_ID:
+            throw utility::ValueError("Database::visit",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      key.id);
+        case TAG_ID: {
+                Entry<Tag> e(reconstruct<Entry<Tag> >(lmdb_val));
+                v(e);
+            }
+            break;
+        case IMG_ID: {
+                Entry<Img> e(reconstruct<Entry<Img> >(lmdb_val));
+                v(e);
+            }
+            break;
+        }
+
         ++visits;
     }
 
@@ -593,13 +650,32 @@ size_t
 Database::visit(Visitor<Impl> &v) const
 {
     size_t visits = 0;
-    lmdb::val lmdb_key, lmdb_value;
+    lmdb::val lmdb_key, lmdb_val;
     lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
     lmdb::dbi dbi(lmdb::dbi::open(txn));
     lmdb::cursor cur(lmdb::cursor::open(txn, dbi));
 
-    while (cur.get(lmdb_key, lmdb_value, MDB_NEXT)) {
+    while (cur.get(lmdb_key, lmdb_val, MDB_NEXT)) {
         const Key key(reconstruct<Key>(lmdb_key));
+
+        switch (key.id) {
+        case NO_ID:
+            throw utility::ValueError("Database::visit",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      key.id);
+        case TAG_ID: {
+                const Entry<Tag> e(reconstruct<Entry<Tag> >(lmdb_val));
+                v(e);
+            }
+            break;
+        case IMG_ID: {
+                const Entry<Img> e(reconstruct<Entry<Img> >(lmdb_val));
+                v(e);
+            }
+            break;
+        }
+
         ++visits;
     }
 
@@ -674,4 +750,3 @@ Database::update(const Traverse::Path &p)
 }
 
 } // verbatim
-
