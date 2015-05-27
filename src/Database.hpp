@@ -54,8 +54,8 @@ class Database
 
         struct Metrics
         {
-            ssize_t entries, added, removed, updated;
-            Metrics() : entries(0), added(0), removed(0), updated(0) {}
+            ssize_t lookups, added, removed, updated;
+            Metrics() : lookups(0), added(0), removed(0), updated(0) {}
         };
 
         /* Attributes/member variables */
@@ -74,7 +74,7 @@ class Database
         template<typename Impl> size_t visit(Visitor<Impl> &v) const;
 
         /* Methods/Member functions (Entry) */
-        template<typename Value> bool lookup(Entry<Value> &e) const;
+        template<typename Value> bool lookup(Entry<Value> &e);
         template<typename Value> void update(const Entry<Value> &e);
 
         /* Methods/Member functions (Path) */

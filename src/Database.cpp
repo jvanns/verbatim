@@ -23,6 +23,7 @@
 
 // libstdc++
 #include <set>
+#include <vector>
 #include <sstream>
 
 // libc
@@ -34,6 +35,7 @@
 using std::set;
 using std::endl;
 using std::string;
+using std::vector;
 using std::ostream;
 using std::istringstream;
 using std::ostringstream;
@@ -405,11 +407,12 @@ Database::Updater::operator()()
         if (img_key) {
             Database::Entry<Img> img_ent(img_key);
 
-            if (!db.lookup<Img>(img_ent) && copy_img_data(tags, img_ent.value))
+            if (!db.lookup<Img>(img_ent) && copy_img_data(tags,img_ent.value)) {
                 img_ent.added = 1;
+                db.update<Img>(img_ent);
+            }
 
             tag_ent.links.insert(img_key);
-            db.update<Img>(img_ent);
         }
 
         tag_ent.added = tag_ent.value.modified == 0;
@@ -421,9 +424,9 @@ Database::Updater::operator()()
         tag_ent.value.album = tags->album().to8Bit();
         tag_ent.value.title = tags->title().to8Bit();
         tag_ent.value.artist = tags->artist().to8Bit();
-    }
 
-    db.update<Tag>(tag_ent);
+        db.update<Tag>(tag_ent);
+    }
 }
 
 /*
@@ -494,7 +497,7 @@ void
 Database::print_metrics(ostream &stream) const
 {
     stream <<
-        "verbatim[Database]: Total #added = " <<
+        "verbatim[Database]: Total #added =   " <<
         metrics[0].added <<
         endl <<
         "verbatim[Database]: Total #removed = " <<
@@ -503,8 +506,8 @@ Database::print_metrics(ostream &stream) const
         "verbatim[Database]: Total #updated = " <<
         metrics[0].updated <<
         endl <<
-        "verbatim[Database]: Total #entries = " <<
-        metrics[0].entries <<
+        "verbatim[Database]: Total #lookups = " <<
+        metrics[0].lookups <<
         endl <<
         "verbatim[Database]: Spread measure = ~" <<
         spread <<
@@ -525,14 +528,20 @@ void
 Database::aggregate_metrics()
 {
     Metrics &aggregate = metrics[0];
+    vector<double> activity(metrics.size(), 0.0);
 
     for (size_t i = 1 ; i < metrics.size() ; ++i) {
-        metrics[i].entries += (metrics[i].added + metrics[i].updated) - metrics[i].removed;
-
         aggregate.added += metrics[i].added;
         aggregate.removed += metrics[i].removed;
         aggregate.updated += metrics[i].updated;
-        aggregate.entries += metrics[i].entries;
+        aggregate.lookups += metrics[i].lookups;
+
+        activity[i] =
+            metrics[i].added +
+            metrics[i].removed +
+            metrics[i].updated +
+            metrics[i].lookups;
+        activity[0] += activity[i];
     }
 
     /*
@@ -550,10 +559,10 @@ Database::aggregate_metrics()
      * could have been.
      */
 
-    double n = metrics.size() - 1,
-           wupt = metrics[0].entries / n, x = 0.0f, y = 0.0f;
-    for (size_t i = 1 ; i < metrics.size() ; ++i) {
-        y = metrics[i].entries - wupt;
+    double n = activity.size() - 1,
+           wupt = activity[0] / n, x = 0.0f, y = 0.0f;
+    for (size_t i = 1 ; i < activity.size() ; ++i) {
+        y = activity[i] - wupt;
         x += (y * y);
     }
 
@@ -600,22 +609,25 @@ Database::visit(Visitor<Impl> &v) const
 template<typename Value>
 inline
 bool
-Database::lookup(Entry<Value> &e) const
+Database::lookup(Entry<Value> &e)
 {
     lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
     lmdb::dbi dbi(lmdb::dbi::open(txn));
 
-    const Key k(e.key); // Copy for assert()
-    const string key(deconstruct<Key>(k));
-
+    const string key(deconstruct<Key>(e.key));
     lmdb::val lmdb_key(key), lmdb_val;
-    if (!dbi.get(txn, lmdb_key, lmdb_val))
-        return false;
+    bool found = dbi.get(txn, lmdb_key, lmdb_val);
 
-    e = reconstruct<Entry<Value> >(lmdb_val);
-    assert(e.key == k);
+    Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
+    m.lookups++;
 
-    return true;
+    if (found) {
+        const Key k(e.key); // Copy for assert()
+        e = reconstruct<Entry<Value> >(lmdb_val);
+        assert(e.key == k);
+    }
+
+    return found;
 }
 
 template<typename Value>
@@ -631,27 +643,21 @@ Database::update(const Entry<Value> &e)
     const string key(deconstruct<Key>(e.key));
     lmdb::val lmdb_key(key);
 
-    int x = 1;
     Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
-
     if (e.added || e.updated) {
         const string val(deconstruct<Entry<Value> >(e));
         lmdb::val lmdb_val(val);
 
         dbi.put(txn, lmdb_key, lmdb_val);
-        x = 0;
     } else if (e.removed) {
         dbi.del(txn, lmdb_key);
-        x = 0;
     }
 
-    m.entries += x;
     m.added += e.added;
     m.removed += e.removed;
     m.updated += e.updated;
 
-    if (!x)
-        txn.commit();
+    txn.commit();
 }
 
 inline
