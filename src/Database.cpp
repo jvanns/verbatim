@@ -194,20 +194,6 @@ struct Database::Updater
     const time_t modify_time;
 };
 
-struct Database::Remover
-{
-    /* Methods/Member functions */
-    Remover(Database &d);
-
-    /*
-     * Entry point for thread
-     */
-    void operator()();
-
-    /* Attributes/member variables */
-    Database &db;
-};
-
 /*
  * The friends
  */
@@ -269,11 +255,16 @@ struct Printer : public Database::Visitor<Printer>
     ostream &stream;
 };
 
-struct Verifier : public Database::Visitor<Verifier>
+struct Database::Remover : public Database::Visitor<Remover>
 {
     /* Methods/Member functions */
-    Verifier(Database &d) : db(d) {}
-    virtual ~Verifier() {}
+    Remover(Database &d) : db(d) {}
+    virtual ~Remover() {}
+
+    /*
+     * Entry point for thread
+     */
+    void operator()();
 
     template<typename T>
     void operator() (Database::Entry<T> &e); // See specialisations below
@@ -281,35 +272,6 @@ struct Verifier : public Database::Visitor<Verifier>
     /* Attributes/member variables */
     Database &db;
 };
-
-template<>
-inline
-void
-Verifier::operator()<Img> (Database::Entry<Img> &e)
-{
-}
-
-template<>
-inline
-void
-Verifier::operator()<Tag> (Database::Entry<Tag> &e)
-{
-    assert(e.key.id == TAG_ID);
-
-    if (access(e.value.filename.c_str(), F_OK) == 0)
-        return;
-
-    /*
-     * FIXME: Remove any Img entry too and any other entry
-     * that references it.
-     */
-
-    /*
-     * If the file doesn't exist anymore, remove the entry
-     */
-    e.removed = 1;
-    update(db, e);
-}
 
 /*
  * Implementations
@@ -470,9 +432,6 @@ Database::Updater::operator()()
 /*
  * verbatim::Database::Remover
  */
-Database::Remover::Remover(Database &d) : db(d)
-{
-}
 
 /*
  * Entry point for thread
@@ -480,8 +439,36 @@ Database::Remover::Remover(Database &d) : db(d)
 void
 Database::Remover::operator()()
 {
-    Verifier v(db);
-    db.visit<Verifier>(v);
+    db.visit<Remover>(*this);
+}
+
+template<>
+inline
+void
+Database::Remover::operator()<Img> (Database::Entry<Img> &e)
+{
+}
+
+template<>
+inline
+void
+Database::Remover::operator()<Tag> (Database::Entry<Tag> &e)
+{
+    assert(e.key.id == TAG_ID);
+
+    if (access(e.value.filename.c_str(), F_OK) == 0)
+        return;
+
+    /*
+     * FIXME: Remove any Img entry too and any other entry
+     * that references it.
+     */
+
+    /*
+     * If the file doesn't exist anymore, remove the entry
+     */
+    e.removed = 1;
+    db.update(e);
 }
 
 /*
