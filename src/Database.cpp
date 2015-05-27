@@ -495,7 +495,6 @@ Database::Database(Traverse &t, utility::ThreadPool &tp) :
     new_path(*this),
     threads(tp)
 {
-    db.set_max_readers(tp.size());
     db.set_mapsize((1024 * 1024) * 64); // 64MB
     traverser.register_callback(&new_path);
 }
