@@ -520,7 +520,20 @@ Database::update(const string &path)
 void
 Database::print_metrics(ostream &stream) const
 {
+    lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
+    lmdb::dbi dbi(lmdb::dbi::open(txn));
+    MDB_stat db_stats(dbi.stat(txn));
+
     stream <<
+        "verbatim[Database]: Tree depth =     " <<
+        db_stats.ms_depth <<
+        endl <<
+        "verbatim[Database]: #branches =      " <<
+        db_stats.ms_branch_pages <<
+        endl <<
+        "verbatim[Database]: #leaves =        " <<
+        db_stats.ms_leaf_pages <<
+        endl <<
         "verbatim[Database]: Total #added =   " <<
         metrics[0].added <<
         endl <<
@@ -532,6 +545,9 @@ Database::print_metrics(ostream &stream) const
         endl <<
         "verbatim[Database]: Total #lookups = " <<
         metrics[0].lookups <<
+        endl <<
+        "verbatim[Database]: Total #entries = " <<
+        db_stats.ms_entries <<
         endl <<
         "verbatim[Database]: Spread measure = ~" <<
         spread <<
