@@ -131,9 +131,8 @@ deconstruct(const Type &value)
 namespace verbatim {
 
 /*
- * Interfaces
+ * Key (interface)
  */
- 
 struct Key
 {
     /* Type definitions */
@@ -157,121 +156,8 @@ struct Key
     static const utility::Hash hasher;
 };
 
-template<typename Value> struct Database::Entry
-{
-    /* Methods/Member functions */
-    Entry();
-    explicit Entry(const Key &k);
-    explicit Entry(const Key &k, const Value &v);
-
-    template<typename Archive>
-    void
-    serialize(Archive &archive, unsigned int /* version */);
-
-    /* Attributes/member variables */
-    Key key;
-    Value value;
-    set<Key> links; /* References to other linked DB entries */
-
-    size_t added,
-           removed,
-           updated;
-};
-
-struct Database::Maintainer
-{
-    /* Methods/Member functions */
-    Maintainer(Database &d, const char *p, const time_t f);
-
-    /*
-     * Entry point for thread
-     */
-    void operator()();
-
-    /* Attributes/member variables */
-    Database &db;
-    const string path;
-    const time_t modify_time;
-};
-
 /*
- * The friends
- */
-template<typename Impl> class Database::Visitor
-{
-    public:
-        /* Methods/Member functions */
-        template<typename T>
-        inline
-        void operator() (Database::Entry<T> &e)
-        {
-            Impl &impl = static_cast<Impl&>(*this);
-            impl(e);
-        }
-
-        template<typename T>
-        inline
-        void operator() (const Database::Entry<T> &e)
-        {
-            Impl &impl = static_cast<Impl&>(*this);
-            impl(e);
-        }
-};
-
-/*
- * Visitor implementations
- */
-struct Printer : public Database::Visitor<Printer>
-{
-    /* Methods/Member functions */
-    Printer(ostream &s) : stream(s) {}
-    virtual ~Printer() {}
-
-    template<typename T>
-    inline
-    void operator() (const Database::Entry<T> &e)
-    {
-        assert(e.key.id != NO_ID);
-        stream << e.key << '\t' << e.value << endl;
-
-        set<Key>::iterator i(e.links.begin()), j(e.links.end());
-        while (i != j) {
-            stream << '\t' << *i;
-            ++i;
-        }
-
-        if (e.links.size() > 0)
-            stream << endl;
-    }
-
-    /* Attributes/member variables */
-    ostream &stream;
-};
-
-struct Database::Janitor : public Database::Visitor<Janitor>
-{
-    /* Methods/Member functions */
-    Janitor(Database &d) : db(d) {}
-    virtual ~Janitor() {}
-
-    /*
-     * Entry point for thread
-     */
-    void operator()();
-
-    template<typename T>
-    void operator() (Database::Entry<T> &e); // See specialisations below
-
-    /* Attributes/member variables */
-    Database &db;
-};
-
-/*
- * Implementations
- */
-
-/*
- * verbatim::Key
+ * Key (implementation)
  */
 const utility::Hash Key::hasher = utility::Hash();
 
@@ -335,7 +221,31 @@ operator<< (ostream &s, const Key &k)
 }
 
 /*
- * verbatim::Database::Entry
+ * Entry (interface)
+ */
+template<typename Value> struct Database::Entry
+{
+    /* Methods/Member functions */
+    Entry();
+    explicit Entry(const Key &k);
+    explicit Entry(const Key &k, const Value &v);
+
+    template<typename Archive>
+    void
+    serialize(Archive &archive, unsigned int /* version */);
+
+    /* Attributes/member variables */
+    Key key;
+    Value value;
+    set<Key> links; /* References to other linked DB entries */
+
+    size_t added,
+           removed,
+           updated;
+};
+
+/*
+ * Entry (implementation)
  */
 template<typename Value>
 Database::Entry<Value>::Entry() : added(0), removed(0), updated(0)
@@ -370,7 +280,130 @@ Database::Entry<Value>::serialize(Archive &archive, unsigned int /* version */)
 }
 
 /*
- * verbatim::Database::Maintainer
+ * Visitor
+ */
+template<typename Impl> class Database::Visitor
+{
+    public:
+        /* Methods/Member functions */
+        template<typename T>
+        inline
+        void operator() (Database::Entry<T> &e)
+        {
+            Impl &impl = static_cast<Impl&>(*this);
+            impl(e);
+        }
+
+        template<typename T>
+        inline
+        void operator() (const Database::Entry<T> &e)
+        {
+            Impl &impl = static_cast<Impl&>(*this);
+            impl(e);
+        }
+};
+
+/*
+ * Printer (Visitor implementor)
+ */
+struct Printer : public Database::Visitor<Printer>
+{
+    /* Methods/Member functions */
+    Printer(ostream &s) : stream(s) {}
+    virtual ~Printer() {}
+
+    template<typename T>
+    inline
+    void operator() (const Database::Entry<T> &e)
+    {
+        assert(e.key.id != NO_ID);
+        stream << e.key << '\t' << e.value << endl;
+
+        set<Key>::iterator i(e.links.begin()), j(e.links.end());
+        while (i != j) {
+            stream << '\t' << *i;
+            ++i;
+        }
+
+        if (e.links.size() > 0)
+            stream << endl;
+    }
+
+    /* Attributes/member variables */
+    ostream &stream;
+};
+
+/*
+ * Janitor (Visitor implementor)
+ */
+struct Database::Janitor : public Database::Visitor<Janitor>
+{
+    /* Methods/Member functions */
+    Janitor(Database &d) : db(d) {}
+    virtual ~Janitor() {}
+
+    void operator()(); // THREAD ENTRY POINT
+
+    template<typename T>
+    void operator() (Database::Entry<T> &e); // See specialisations below
+
+    /* Attributes/member variables */
+    Database &db;
+};
+
+void
+Database::Janitor::operator()() // THREAD ENTRY POINT
+{
+    db.visit<Janitor>(*this);
+}
+
+template<>
+inline
+void
+Database::Janitor::operator()<Img> (Database::Entry<Img> &e)
+{
+}
+
+template<>
+inline
+void
+Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
+{
+    assert(e.key.id == TAG_ID);
+
+    if (access(e.value.filename.c_str(), F_OK) == 0)
+        return;
+
+    /*
+     * FIXME: Remove any Img entry too and any other entry
+     * that references it.
+     */
+
+    /*
+     * If the file doesn't exist anymore, remove the entry
+     */
+    e.removed = 1;
+    db.update(e);
+}
+
+/*
+ * Maintainer (interface)
+ */
+struct Database::Maintainer
+{
+    /* Methods/Member functions */
+    Maintainer(Database &d, const char *p, const time_t f);
+
+    void operator()(); // THREAD ENTRY POINT
+
+    /* Attributes/member variables */
+    Database &db;
+    const string path;
+    const time_t modify_time;
+};
+
+/*
+ * Maintainer (implementation)
  */
 Database::Maintainer::Maintainer(Database &d, const char *p, const time_t f) :
     db(d),
@@ -379,11 +412,8 @@ Database::Maintainer::Maintainer(Database &d, const char *p, const time_t f) :
 {
 }
 
-/*
- * Entry point for thread
- */
 void
-Database::Maintainer::operator()()
+Database::Maintainer::operator()() // THREAD ENTRY POINT
 {
     TagLib::MPEG::File f(path.c_str());
 
@@ -423,49 +453,7 @@ Database::Maintainer::operator()()
 }
 
 /*
- * verbatim::Database::Janitor
- */
-
-/*
- * Entry point for thread
- */
-void
-Database::Janitor::operator()()
-{
-    db.visit<Janitor>(*this);
-}
-
-template<>
-inline
-void
-Database::Janitor::operator()<Img> (Database::Entry<Img> &e)
-{
-}
-
-template<>
-inline
-void
-Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
-{
-    assert(e.key.id == TAG_ID);
-
-    if (access(e.value.filename.c_str(), F_OK) == 0)
-        return;
-
-    /*
-     * FIXME: Remove any Img entry too and any other entry
-     * that references it.
-     */
-
-    /*
-     * If the file doesn't exist anymore, remove the entry
-     */
-    e.removed = 1;
-    db.update(e);
-}
-
-/*
- * verbatim::Database::RegisterPath
+ * RegisterPath (implementation)
  */
 Database::RegisterPath::RegisterPath(Database &d) : db(d)
 {
@@ -478,7 +466,7 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
 }
 
 /*
- * verbatim::Database 
+ * Database  (implementation)
  */
 Database::Database(Traverse &t, utility::ThreadPool &tp) :
     db(lmdb::env::create()),
