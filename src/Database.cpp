@@ -329,10 +329,8 @@ struct Printer : public Database::Visitor<Printer>
         if (e.links_to.size() > 0)
             stream << endl;
 
-        for (i = e.links_from.begin(), j = e.links_from.end() ; i != j ; ++i) {
+        for (i = e.links_from.begin(), j = e.links_from.end() ; i != j ; ++i)
             stream << "\t[<-]\t" << *i;
-            ++i;
-        }
 
         if (e.links_from.size() > 0)
             stream << endl;
@@ -383,10 +381,63 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
     if (access(e.value.filename.c_str(), F_OK) == 0)
         return;
 
-    /*
-     * FIXME: Remove any Img entry too and any other entry
-     * that references it.
-     */
+    set<Key>::iterator i(e.links_from.begin()), j(e.links_from.end());
+    while (i != j) {
+        switch (i->id) {
+        case NO_ID:
+            throw utility::ValueError("Janitor::operator()",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      *i);
+        case TAG_ID: {
+                Entry<Tag> link(*i);
+                if (db.lookup(link)) {
+                    link.links_to.erase(e.key);
+                    link.updated = 1;
+                    db.update(link);
+                }
+            }
+            break;
+        case IMG_ID: {
+                Entry<Img> link(*i);
+                if (db.lookup(link)) {
+                    link.links_to.erase(e.key);
+                    link.updated = 1;
+                    db.update(link);
+                }
+            }
+            break;
+        }
+        ++i;
+    }
+
+    for (i = e.links_to.begin(), j = e.links_to.end() ; i != j ; ++i) {
+        switch (i->id) {
+        case NO_ID:
+            throw utility::ValueError("Janitor::operator()",
+                                      0,
+                                      "Invalid ID (%d) in Key object",
+                                      *i);
+        case TAG_ID: {
+                Entry<Tag> link(*i);
+                if (db.lookup(link)) {
+                    link.links_from.erase(e.key);
+                    link.updated = 1;
+                    db.update(link);
+                }
+            }
+            break;
+        case IMG_ID: {
+                Entry<Img> link(*i);
+                if (db.lookup(link)) {
+                    link.links_from.erase(e.key);
+                    link.updated = 1;
+                    db.update(link);
+                }
+            }
+            break;
+        }
+    }
 
     /*
      * If the file doesn't exist anymore, remove the entry
