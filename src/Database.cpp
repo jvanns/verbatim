@@ -178,10 +178,10 @@ template<typename Value> struct Database::Entry
            updated;
 };
 
-struct Database::Updater
+struct Database::Maintainer
 {
     /* Methods/Member functions */
-    Updater(Database &d, const char *p, const time_t f);
+    Maintainer(Database &d, const char *p, const time_t f);
 
     /*
      * Entry point for thread
@@ -248,11 +248,11 @@ struct Printer : public Database::Visitor<Printer>
     ostream &stream;
 };
 
-struct Database::Remover : public Database::Visitor<Remover>
+struct Database::Janitor : public Database::Visitor<Janitor>
 {
     /* Methods/Member functions */
-    Remover(Database &d) : db(d) {}
-    virtual ~Remover() {}
+    Janitor(Database &d) : db(d) {}
+    virtual ~Janitor() {}
 
     /*
      * Entry point for thread
@@ -370,9 +370,9 @@ Database::Entry<Value>::serialize(Archive &archive, unsigned int /* version */)
 }
 
 /*
- * verbatim::Database::Updater
+ * verbatim::Database::Maintainer
  */
-Database::Updater::Updater(Database &d, const char *p, const time_t f) :
+Database::Maintainer::Maintainer(Database &d, const char *p, const time_t f) :
     db(d),
     path(p),
     modify_time(f)
@@ -383,7 +383,7 @@ Database::Updater::Updater(Database &d, const char *p, const time_t f) :
  * Entry point for thread
  */
 void
-Database::Updater::operator()()
+Database::Maintainer::operator()()
 {
     TagLib::MPEG::File f(path.c_str());
 
@@ -423,29 +423,29 @@ Database::Updater::operator()()
 }
 
 /*
- * verbatim::Database::Remover
+ * verbatim::Database::Janitor
  */
 
 /*
  * Entry point for thread
  */
 void
-Database::Remover::operator()()
+Database::Janitor::operator()()
 {
-    db.visit<Remover>(*this);
+    db.visit<Janitor>(*this);
 }
 
 template<>
 inline
 void
-Database::Remover::operator()<Img> (Database::Entry<Img> &e)
+Database::Janitor::operator()<Img> (Database::Entry<Img> &e)
 {
 }
 
 template<>
 inline
 void
-Database::Remover::operator()<Tag> (Database::Entry<Tag> &e)
+Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
 {
     assert(e.key.id == TAG_ID);
 
@@ -505,9 +505,9 @@ Database::open(const string &path)
 void
 Database::update(const string &path)
 {
-    const Remover r(*this);
+    const Janitor j(*this);
     open(path);
-    threads.submit(r);
+    threads.submit(j);
 }
 
 void
@@ -739,8 +739,8 @@ Database::update(const Traverse::Path &p)
      * Open the file, read the tags, add or update a DB entry (a key-value pair)
      */
     if (S_ISREG(p.info->st_mode)) {
-        const Updater u(*this, p.name, p.info->st_mtime);
-        threads.submit(u);
+        const Maintainer m(*this, p.name, p.info->st_mtime);
+        threads.submit(m);
     }
 }
 

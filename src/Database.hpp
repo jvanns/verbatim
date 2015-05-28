@@ -39,8 +39,8 @@ class Database
         template<typename Value> struct Entry;
     private:
         /* Forward declarations */
-        struct Updater;
-        struct Remover;
+        struct Janitor; // For cleaning stale entries
+        struct Maintainer; // For maintaining new and existing entries
 
         /* Type definitions */
         class RegisterPath : public Traverse::Callback
