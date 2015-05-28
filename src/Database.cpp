@@ -277,7 +277,7 @@ template<typename Archive>
 void
 Database::Entry<Value>::serialize(Archive &archive, unsigned int /* version */)
 {
-    archive & key & value & links_to;
+    archive & key & value & links_to & links_from;
 }
 
 /*
@@ -322,11 +322,19 @@ struct Printer : public Database::Visitor<Printer>
 
         set<Key>::iterator i(e.links_to.begin()), j(e.links_to.end());
         while (i != j) {
-            stream << '\t' << *i;
+            stream << "\t[->]\t" << *i;
             ++i;
         }
 
         if (e.links_to.size() > 0)
+            stream << endl;
+
+        for (i = e.links_from.begin(), j = e.links_from.end() ; i != j ; ++i) {
+            stream << "\t[<-]\t" << *i;
+            ++i;
+        }
+
+        if (e.links_from.size() > 0)
             stream << endl;
     }
 
@@ -424,6 +432,10 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
     const Key tag_key(path);
     Database::Entry<Tag> tag_ent(tag_key);
 
+    /*
+     * FIXME: Transaction needs to be in this scope, not update() alone
+     */
+
     if (!db.lookup<Tag>(tag_ent) || tag_ent.value.modified < modify_time) {
         const TagLib::ID3v2::Tag *tags = f.ID3v2Tag();
         const Key img_key(tags);
@@ -431,12 +443,12 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
         if (img_key) {
             Database::Entry<Img> img_ent(img_key);
 
-            if (!db.lookup<Img>(img_ent) && copy_img_data(tags,img_ent.value)) {
+            if (!db.lookup<Img>(img_ent) && copy_img_data(tags, img_ent.value))
                 img_ent.added = 1;
-                db.update<Img>(img_ent);
-            }
 
+            img_ent.links_from.insert(tag_key);
             tag_ent.links_to.insert(img_key);
+            db.update<Img>(img_ent);
         }
 
         tag_ent.added = tag_ent.value.modified == 0;
