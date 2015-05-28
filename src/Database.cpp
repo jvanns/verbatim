@@ -237,7 +237,8 @@ template<typename Value> struct Database::Entry
     /* Attributes/member variables */
     Key key;
     Value value;
-    set<Key> links; /* References to other linked DB entries */
+    set<Key> links_to,   /* References to other linked DB entries */
+             links_from; /* References from other linked DB entries */
 
     size_t added,
            removed,
@@ -276,7 +277,7 @@ template<typename Archive>
 void
 Database::Entry<Value>::serialize(Archive &archive, unsigned int /* version */)
 {
-    archive & key & value & links;
+    archive & key & value & links_to;
 }
 
 /*
@@ -319,13 +320,13 @@ struct Printer : public Database::Visitor<Printer>
         assert(e.key.id != NO_ID);
         stream << e.key << '\t' << e.value << endl;
 
-        set<Key>::iterator i(e.links.begin()), j(e.links.end());
+        set<Key>::iterator i(e.links_to.begin()), j(e.links_to.end());
         while (i != j) {
             stream << '\t' << *i;
             ++i;
         }
 
-        if (e.links.size() > 0)
+        if (e.links_to.size() > 0)
             stream << endl;
     }
 
@@ -435,7 +436,7 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
                 db.update<Img>(img_ent);
             }
 
-            tag_ent.links.insert(img_key);
+            tag_ent.links_to.insert(img_key);
         }
 
         tag_ent.added = tag_ent.value.modified == 0;
