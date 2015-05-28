@@ -218,22 +218,6 @@ template<typename Impl> class Database::Visitor
         }
 };
 
-template<typename Value>
-inline
-bool
-lookup(Database &db, Database::Entry<Value> &e)
-{
-    return db.lookup(e);
-}
-
-template<typename Value>
-inline
-void
-update(Database &db, Database::Entry<Value> &e)
-{
-    return db.update(e);
-}
-
 /*
  * Visitor implementations
  */
