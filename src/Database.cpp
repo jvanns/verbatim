@@ -249,6 +249,15 @@ struct Printer : public Database::Visitor<Printer>
     {
         assert(e.key.id != NO_ID);
         stream << e.key << '\t' << e.value << endl;
+
+        set<Key>::iterator i(e.links.begin()), j(e.links.end());
+        while (i != j) {
+            stream << '\t' << *i;
+            ++i;
+        }
+
+        if (e.links.size() > 0)
+            stream << endl;
     }
 
     /* Attributes/member variables */
