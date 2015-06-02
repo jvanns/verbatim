@@ -221,6 +221,94 @@ operator<< (ostream &s, const Key &k)
 }
 
 /*
+ * Transaction (interface)
+ */
+class Database::Transaction
+{
+    public:
+        /* Methods/Member functions */
+        Transaction(const Database &db);
+        Transaction(Database &db);
+        ~Transaction();
+
+        void commit();
+        void del(lmdb::val &key);
+        void put(lmdb::val &key, lmdb::val &val);
+        bool get(lmdb::val &key, lmdb::val &val);
+        bool itr(lmdb::val &key, lmdb::val &val);
+    private:
+        /* Attributes/member variables */
+        bool abort;
+        lmdb::txn txn;
+        lmdb::dbi dbi;
+        lmdb::cursor cur;
+};
+
+/*
+ * Transaction (implementation)
+ */
+Database::Transaction::Transaction(const Database &db) :
+    abort(true),
+    txn(lmdb::txn::begin(db.db, nullptr, MDB_RDONLY)),
+    dbi(lmdb::dbi::open(txn)),
+    cur(lmdb::cursor::open(txn, dbi))
+{
+}
+
+Database::Transaction::Transaction(Database &db) :
+    abort(true),
+    txn(lmdb::txn::begin(db.db)),
+    dbi(lmdb::dbi::open(txn)),
+    cur(lmdb::cursor::open(txn, dbi))
+{
+}
+
+Database::Transaction::~Transaction()
+{
+    if (abort)
+        txn.abort();
+}
+
+void
+Database::Transaction::commit()
+{
+    txn.commit();
+    abort = false;
+}
+
+inline
+void
+Database::Transaction::del(lmdb::val &key)
+{
+    dbi.del(txn, key);
+}
+
+inline
+void
+Database::Transaction::put(lmdb::val &key, lmdb::val &val)
+{
+    dbi.put(txn, key, val);
+}
+
+inline
+bool
+Database::Transaction::get(lmdb::val &key, lmdb::val &val)
+{
+    return dbi.get(txn, key, val);
+}
+
+inline
+bool
+Database::Transaction::itr(lmdb::val &key, lmdb::val &val)
+{
+    const bool more = cur.get(key, val, MDB_NEXT);
+    if (!more)
+        abort = false;
+
+    return more;
+}
+
+/*
  * Entry (interface)
  */
 template<typename Value> struct Database::Entry
@@ -289,18 +377,20 @@ template<typename Impl> class Database::Visitor
         /* Methods/Member functions */
         template<typename T>
         inline
-        void operator() (Database::Entry<T> &e)
+        void operator() (Database::Entry<T> &e,
+                         Database::Transaction &txn)
         {
             Impl &impl = static_cast<Impl&>(*this);
-            impl(e);
+            impl(e, txn);
         }
 
         template<typename T>
         inline
-        void operator() (const Database::Entry<T> &e)
+        void operator() (const Database::Entry<T> &e,
+                         Database::Transaction &txn)
         {
             Impl &impl = static_cast<Impl&>(*this);
-            impl(e);
+            impl(e, txn);
         }
 };
 
@@ -315,7 +405,7 @@ struct Printer : public Database::Visitor<Printer>
 
     template<typename T>
     inline
-    void operator() (const Database::Entry<T> &e)
+    void operator() (const Database::Entry<T> &e, Database::Transaction &txn)
     {
         assert(e.key.id != NO_ID);
         stream << e.key << '\t' << e.value << endl;
@@ -352,7 +442,7 @@ struct Database::Janitor : public Database::Visitor<Janitor>
     void operator()(); // THREAD ENTRY POINT
 
     template<typename T>
-    void operator() (Database::Entry<T> &e); // See specialisations below
+    void operator() (Database::Entry<T> &e, Database::Transaction &txn);
 
     /* Attributes/member variables */
     Database &db;
@@ -367,14 +457,16 @@ Database::Janitor::operator()() // THREAD ENTRY POINT
 template<>
 inline
 void
-Database::Janitor::operator()<Img> (Database::Entry<Img> &e)
+Database::Janitor::operator()<Img> (Database::Entry<Img> &e,
+                                    Database::Transaction &txn)
 {
 }
 
 template<>
 inline
 void
-Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
+Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e,
+                                    Database::Transaction &txn)
 {
     assert(e.key.id == TAG_ID);
 
@@ -391,19 +483,19 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
                                       *i);
         case TAG_ID: {
                 Entry<Tag> link(*i);
-                if (db.lookup(link)) {
+                if (db.lookup(link, txn)) {
                     link.links_to.erase(e.key);
                     link.updated = 1;
-                    db.update(link);
+                    db.update(link, txn);
                 }
             }
             break;
         case IMG_ID: {
                 Entry<Img> link(*i);
-                if (db.lookup(link)) {
+                if (db.lookup(link, txn)) {
                     link.links_to.erase(e.key);
                     link.updated = 1;
-                    db.update(link);
+                    db.update(link, txn);
                 }
             }
             break;
@@ -420,19 +512,19 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
                                       *i);
         case TAG_ID: {
                 Entry<Tag> link(*i);
-                if (db.lookup(link)) {
+                if (db.lookup(link, txn)) {
                     link.links_from.erase(e.key);
                     link.updated = 1;
-                    db.update(link);
+                    db.update(link, txn);
                 }
             }
             break;
         case IMG_ID: {
                 Entry<Img> link(*i);
-                if (db.lookup(link)) {
+                if (db.lookup(link, txn)) {
                     link.links_from.erase(e.key);
                     link.updated = 1;
-                    db.update(link);
+                    db.update(link, txn);
                 }
             }
             break;
@@ -443,7 +535,7 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e)
      * If the file doesn't exist anymore, remove the entry
      */
     e.removed = 1;
-    db.update(e);
+    db.update(e, txn);
 }
 
 /*
@@ -481,25 +573,24 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
         return;
 
     const Key tag_key(path);
+    Database::Transaction txn(db);
     Database::Entry<Tag> tag_ent(tag_key);
+    bool exists = db.lookup<Tag>(tag_ent, txn);
 
-    /*
-     * FIXME: Transaction needs to be in this scope, not update() alone
-     */
-
-    if (!db.lookup<Tag>(tag_ent) || tag_ent.value.modified < modify_time) {
+    if (!exists || tag_ent.value.modified < modify_time) {
         const TagLib::ID3v2::Tag *tags = f.ID3v2Tag();
         const Key img_key(tags);
 
         if (img_key) {
             Database::Entry<Img> img_ent(img_key);
 
-            if (!db.lookup<Img>(img_ent) && copy_img_data(tags, img_ent.value))
+            exists = db.lookup<Img>(img_ent, txn);
+            if (!exists && copy_img_data(tags, img_ent.value))
                 img_ent.added = 1;
 
             img_ent.links_from.insert(tag_key);
             tag_ent.links_to.insert(img_key);
-            db.update<Img>(img_ent);
+            db.update<Img>(img_ent, txn);
         }
 
         tag_ent.added = tag_ent.value.modified == 0;
@@ -512,7 +603,8 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
         tag_ent.value.title = tags->title().to8Bit();
         tag_ent.value.artist = tags->artist().to8Bit();
 
-        db.update<Tag>(tag_ent);
+        db.update<Tag>(tag_ent, txn);
+        txn.commit();
     }
 }
 
@@ -660,12 +752,10 @@ size_t
 Database::visit(Visitor<Impl> &v)
 {
     size_t visits = 0;
+    Transaction txn(*this);
     lmdb::val lmdb_key, lmdb_val;
-    lmdb::txn txn(lmdb::txn::begin(db));
-    lmdb::dbi dbi(lmdb::dbi::open(txn));
-    lmdb::cursor cur(lmdb::cursor::open(txn, dbi));
 
-    while (cur.get(lmdb_key, lmdb_val, MDB_NEXT)) {
+    while (txn.itr(lmdb_key, lmdb_val)) {
         const Key key(reconstruct<Key>(lmdb_key));
 
         switch (key.id) {
@@ -676,12 +766,12 @@ Database::visit(Visitor<Impl> &v)
                                       key.id);
         case TAG_ID: {
                 Entry<Tag> e(reconstruct<Entry<Tag> >(lmdb_val));
-                v(e);
+                v(e, txn);
             }
             break;
         case IMG_ID: {
                 Entry<Img> e(reconstruct<Entry<Img> >(lmdb_val));
-                v(e);
+                v(e, txn);
             }
             break;
         }
@@ -697,12 +787,10 @@ size_t
 Database::visit(Visitor<Impl> &v) const
 {
     size_t visits = 0;
+    Transaction txn(*this);
     lmdb::val lmdb_key, lmdb_val;
-    lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
-    lmdb::dbi dbi(lmdb::dbi::open(txn));
-    lmdb::cursor cur(lmdb::cursor::open(txn, dbi));
 
-    while (cur.get(lmdb_key, lmdb_val, MDB_NEXT)) {
+    while (txn.itr(lmdb_key, lmdb_val)) {
         const Key key(reconstruct<Key>(lmdb_key));
 
         switch (key.id) {
@@ -713,12 +801,12 @@ Database::visit(Visitor<Impl> &v) const
                                       key.id);
         case TAG_ID: {
                 const Entry<Tag> e(reconstruct<Entry<Tag> >(lmdb_val));
-                v(e);
+                v(e, txn);
             }
             break;
         case IMG_ID: {
                 const Entry<Img> e(reconstruct<Entry<Img> >(lmdb_val));
-                v(e);
+                v(e, txn);
             }
             break;
         }
@@ -732,14 +820,11 @@ Database::visit(Visitor<Impl> &v) const
 template<typename Value>
 inline
 bool
-Database::lookup(Entry<Value> &e)
+Database::lookup(Entry<Value> &e, Transaction &txn)
 {
-    lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
-    lmdb::dbi dbi(lmdb::dbi::open(txn));
-
     const string key(deconstruct<Key>(e.key));
     lmdb::val lmdb_key(key), lmdb_val;
-    bool found = dbi.get(txn, lmdb_key, lmdb_val);
+    bool found = txn.get(lmdb_key, lmdb_val);
 
     Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
     m.lookups++;
@@ -756,31 +841,26 @@ Database::lookup(Entry<Value> &e)
 template<typename Value>
 inline
 void
-Database::update(const Entry<Value> &e)
+Database::update(const Entry<Value> &e, Transaction &txn)
 {
     assert(e.key);
 
-    lmdb::txn txn(lmdb::txn::begin(db));
-    lmdb::dbi dbi(lmdb::dbi::open(txn));
-
+    Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
     const string key(deconstruct<Key>(e.key));
     lmdb::val lmdb_key(key);
 
-    Metrics &m = metrics[threads.index() + 1]; // Metrics of current thread
     if (e.added || e.updated) {
         const string val(deconstruct<Entry<Value> >(e));
         lmdb::val lmdb_val(val);
 
-        dbi.put(txn, lmdb_key, lmdb_val);
+        txn.put(lmdb_key, lmdb_val);
     } else if (e.removed) {
-        dbi.del(txn, lmdb_key);
+        txn.del(lmdb_key);
     }
 
     m.added += e.added;
     m.removed += e.removed;
     m.updated += e.updated;
-
-    txn.commit();
 }
 
 inline

@@ -35,6 +35,7 @@ class Database
         size_t list_entries(std::ostream &stream) const;
     public:
         /* Forward declarations */
+        class Transaction;
         template<typename Impl> class Visitor;
         template<typename Value> struct Entry;
     private:
@@ -74,8 +75,8 @@ class Database
         template<typename Impl> size_t visit(Visitor<Impl> &v) const;
 
         /* Methods/Member functions (Entry) */
-        template<typename Value> bool lookup(Entry<Value> &e);
-        template<typename Value> void update(const Entry<Value> &e);
+        template<typename Value> bool lookup(Entry<Value> &e, Transaction &txn);
+        template<typename Value> void update(const Entry<Value> &e, Transaction &txn);
 
         /* Methods/Member functions (Path) */
         void update(const Traverse::Path &p);
