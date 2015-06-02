@@ -229,57 +229,84 @@ class Database::Transaction
         /* Methods/Member functions */
         Transaction(const Database &db);
         Transaction(Database &db);
-        ~Transaction();
 
+        void begin();
         void commit();
+        void rollback();
+
         void del(lmdb::val &key);
         void put(lmdb::val &key, lmdb::val &val);
         bool get(lmdb::val &key, lmdb::val &val);
         bool itr(lmdb::val &key, lmdb::val &val);
     private:
         /* Attributes/member variables */
-        bool abort;
+        int ready,
+            txn_flags;
         lmdb::txn txn;
         lmdb::dbi dbi;
         lmdb::cursor cur;
+        const lmdb::env &env;
 };
 
 /*
  * Transaction (implementation)
  */
 Database::Transaction::Transaction(const Database &db) :
-    abort(true),
-    txn(lmdb::txn::begin(db.db, nullptr, MDB_RDONLY)),
+    ready(false),
+    txn_flags(MDB_RDONLY),
+    txn(lmdb::txn::begin(db.db, nullptr, txn_flags)),
     dbi(lmdb::dbi::open(txn)),
-    cur(lmdb::cursor::open(txn, dbi))
+    cur(lmdb::cursor::open(txn, dbi)),
+    env(db.db)
 {
 }
 
 Database::Transaction::Transaction(Database &db) :
-    abort(true),
-    txn(lmdb::txn::begin(db.db)),
+    ready(false),
+    txn_flags(0),
+    txn(lmdb::txn::begin(db.db, nullptr, txn_flags)),
     dbi(lmdb::dbi::open(txn)),
-    cur(lmdb::cursor::open(txn, dbi))
+    cur(lmdb::cursor::open(txn, dbi)),
+    env(db.db)
 {
 }
 
-Database::Transaction::~Transaction()
+inline
+void
+Database::Transaction::begin()
 {
-    if (abort)
-        txn.abort();
+    assert(!ready);
+
+    txn = lmdb::txn::begin(env, nullptr, txn_flags);
+    dbi = lmdb::dbi::open(txn);
+
+    ready = true;
 }
 
+inline
 void
 Database::Transaction::commit()
 {
+    assert(ready);
     txn.commit();
-    abort = false;
+    ready = false;
+}
+
+inline
+void
+Database::Transaction::rollback()
+{
+    txn.abort();
+    ready = false;
 }
 
 inline
 void
 Database::Transaction::del(lmdb::val &key)
 {
+    assert(ready);
+    assert(!(txn_flags & MDB_RDONLY));
+
     dbi.del(txn, key);
 }
 
@@ -287,6 +314,9 @@ inline
 void
 Database::Transaction::put(lmdb::val &key, lmdb::val &val)
 {
+    assert(ready);
+    assert(!(txn_flags & MDB_RDONLY));
+
     dbi.put(txn, key, val);
 }
 
@@ -301,11 +331,7 @@ inline
 bool
 Database::Transaction::itr(lmdb::val &key, lmdb::val &val)
 {
-    const bool more = cur.get(key, val, MDB_NEXT);
-    if (!more)
-        abort = false;
-
-    return more;
+    return cur.get(key, val, MDB_NEXT);
 }
 
 /*
@@ -473,6 +499,8 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e,
     if (access(e.value.filename.c_str(), F_OK) == 0)
         return;
 
+    txn.begin();
+
     set<Key>::iterator i(e.links_from.begin()), j(e.links_from.end());
     while (i != j) {
         switch (i->id) {
@@ -536,6 +564,8 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e,
      */
     e.removed = 1;
     db.update(e, txn);
+
+    txn.commit();
 }
 
 /*
@@ -575,17 +605,20 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
     const Key tag_key(path);
     Database::Transaction txn(db);
     Database::Entry<Tag> tag_ent(tag_key);
-    bool exists = db.lookup<Tag>(tag_ent, txn);
 
-    if (!exists || tag_ent.value.modified < modify_time) {
+    txn.begin();
+
+    if (!db.lookup<Tag>(tag_ent, txn) ||
+        tag_ent.value.modified < modify_time)
+    {
         const TagLib::ID3v2::Tag *tags = f.ID3v2Tag();
         const Key img_key(tags);
 
         if (img_key) {
             Database::Entry<Img> img_ent(img_key);
 
-            exists = db.lookup<Img>(img_ent, txn);
-            if (!exists && copy_img_data(tags, img_ent.value))
+            if (db.lookup<Img>(img_ent, txn) &&
+                copy_img_data(tags, img_ent.value))
                 img_ent.added = 1;
 
             img_ent.links_from.insert(tag_key);
@@ -604,8 +637,9 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
         tag_ent.value.artist = tags->artist().to8Bit();
 
         db.update<Tag>(tag_ent, txn);
-        txn.commit();
     }
+
+    txn.commit();
 }
 
 /*
