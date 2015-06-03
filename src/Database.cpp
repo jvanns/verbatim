@@ -232,8 +232,6 @@ class Database::Transaction
         Transaction(Database &db);
 
         void commit();
-        void rollback();
-
         lmdb::cursor cur();
         MDB_stat stats() const;
 
@@ -280,13 +278,6 @@ void
 Database::Transaction::commit()
 {
     txn.commit();
-}
-
-inline
-void
-Database::Transaction::rollback()
-{
-    txn.abort();
 }
 
 inline
