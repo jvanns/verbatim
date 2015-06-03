@@ -235,6 +235,8 @@ class Database::Transaction
         void rollback();
 
         lmdb::cursor cur();
+        MDB_stat stats() const;
+
         void del(lmdb::val &key);
         void put(lmdb::val &key, lmdb::val &val);
         bool get(lmdb::val &key, lmdb::val &val);
@@ -315,6 +317,13 @@ lmdb::cursor
 Database::Transaction::cur()
 {
     return lmdb::cursor::open(txn, dbi);
+}
+
+inline
+MDB_stat
+Database::Transaction::stats() const
+{
+    return dbi.stat(txn);
 }
 
 /*
@@ -669,9 +678,8 @@ Database::update(const string &path)
 void
 Database::print_metrics(ostream &stream) const
 {
-    lmdb::txn txn(lmdb::txn::begin(lmdb_env, nullptr, MDB_RDONLY));
-    lmdb::dbi dbi(lmdb::dbi::open(txn));
-    MDB_stat db_stats(dbi.stat(txn));
+    Transaction txn(*this);
+    const MDB_stat db_stats(txn.stats());
 
     stream <<
         "verbatim[Database]: Tree depth =     " <<
