@@ -254,20 +254,20 @@ class Database::Transaction
 Database::Transaction::Transaction(const Database &db) :
     ready(false),
     txn_flags(MDB_RDONLY),
-    txn(lmdb::txn::begin(db.db, nullptr, txn_flags)),
+    txn(lmdb::txn::begin(db.lmdb_env, nullptr, txn_flags)),
     dbi(lmdb::dbi::open(txn)),
     cur(lmdb::cursor::open(txn, dbi)),
-    env(db.db)
+    env(db.lmdb_env)
 {
 }
 
 Database::Transaction::Transaction(Database &db) :
     ready(false),
     txn_flags(0),
-    txn(lmdb::txn::begin(db.db, nullptr, txn_flags)),
+    txn(lmdb::txn::begin(db.lmdb_env, nullptr, txn_flags)),
     dbi(lmdb::dbi::open(txn)),
     cur(lmdb::cursor::open(txn, dbi)),
-    env(db.db)
+    env(db.lmdb_env)
 {
 }
 
@@ -659,14 +659,14 @@ Database::RegisterPath::operator() (const Traverse::Path &p)
  * Database  (implementation)
  */
 Database::Database(Traverse &t, utility::ThreadPool &tp) :
-    db(lmdb::env::create()),
+    lmdb_env(lmdb::env::create()),
     spread(0.0),
     metrics(tp.size() + 1),
     traverser(t),
     new_path(*this),
     threads(tp)
 {
-    db.set_mapsize((1024 * 1024) * 64); // 64MB
+    lmdb_env.set_mapsize((1024 * 1024) * 64); // 64MB
     traverser.register_callback(&new_path);
 }
 
@@ -677,7 +677,7 @@ Database::~Database()
 void
 Database::open(const string &path)
 {
-    db.open(path.c_str(), 0, 0600);
+    lmdb_env.open(path.c_str(), 0, 0600);
 }
 
 void
@@ -691,7 +691,7 @@ Database::update(const string &path)
 void
 Database::print_metrics(ostream &stream) const
 {
-    lmdb::txn txn(lmdb::txn::begin(db, nullptr, MDB_RDONLY));
+    lmdb::txn txn(lmdb::txn::begin(lmdb_env, nullptr, MDB_RDONLY));
     lmdb::dbi dbi(lmdb::dbi::open(txn));
     MDB_stat db_stats(dbi.stat(txn));
 

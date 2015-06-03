@@ -60,7 +60,7 @@ class Database
         };
 
         /* Attributes/member variables */
-        lmdb::env db;
+        lmdb::env lmdb_env;
 
         double spread; // Approximation of distribution efficiency
         std::vector<Metrics> metrics; // Per-thread metrics
