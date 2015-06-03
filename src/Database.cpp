@@ -290,6 +290,20 @@ Database::Transaction::rollback()
 }
 
 inline
+lmdb::cursor
+Database::Transaction::cur()
+{
+    return lmdb::cursor::open(txn, dbi);
+}
+
+inline
+MDB_stat
+Database::Transaction::stats() const
+{
+    return dbi.stat(txn);
+}
+
+inline
 void
 Database::Transaction::del(lmdb::val &key)
 {
@@ -310,20 +324,6 @@ bool
 Database::Transaction::get(lmdb::val &key, lmdb::val &val)
 {
     return dbi.get(txn, key, val);
-}
-
-inline
-lmdb::cursor
-Database::Transaction::cur()
-{
-    return lmdb::cursor::open(txn, dbi);
-}
-
-inline
-MDB_stat
-Database::Transaction::stats() const
-{
-    return dbi.stat(txn);
 }
 
 /*
