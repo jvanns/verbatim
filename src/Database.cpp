@@ -227,9 +227,8 @@ class Database::Transaction
 {
     public:
         /* Methods/Member functions */
-        Transaction(const Transaction &t);
+        Transaction(const Transaction &tn);
         Transaction(const Database &db);
-        Transaction(Database &db);
 
         void commit();
         lmdb::cursor cur();
@@ -240,7 +239,6 @@ class Database::Transaction
         bool get(lmdb::val &key, lmdb::val &val);
     private:
         /* Attributes/member variables */
-        int txn_flags;
         lmdb::txn txn;
         lmdb::dbi dbi;
         const lmdb::env &env;
@@ -249,25 +247,15 @@ class Database::Transaction
 /*
  * Transaction (implementation)
  */
-Database::Transaction::Transaction(const Transaction &t) :
-    txn_flags(t.txn_flags),
-    txn(lmdb::txn::begin(t.env, nullptr, txn_flags)),
+Database::Transaction::Transaction(const Transaction &tn) :
+    txn(lmdb::txn::begin(tn.env)),
     dbi(lmdb::dbi::open(txn)),
-    env(t.env)
+    env(tn.env)
 {
 }
 
 Database::Transaction::Transaction(const Database &db) :
-    txn_flags(MDB_RDONLY),
-    txn(lmdb::txn::begin(db.lmdb_env, nullptr, txn_flags)),
-    dbi(lmdb::dbi::open(txn)),
-    env(db.lmdb_env)
-{
-}
-
-Database::Transaction::Transaction(Database &db) :
-    txn_flags(0),
-    txn(lmdb::txn::begin(db.lmdb_env, nullptr, txn_flags)),
+    txn(lmdb::txn::begin(db.lmdb_env)),
     dbi(lmdb::dbi::open(txn)),
     env(db.lmdb_env)
 {
@@ -298,7 +286,6 @@ inline
 void
 Database::Transaction::del(lmdb::val &key)
 {
-    assert(!(txn_flags & MDB_RDONLY));
     dbi.del(txn, key);
 }
 
@@ -306,7 +293,6 @@ inline
 void
 Database::Transaction::put(lmdb::val &key, lmdb::val &val)
 {
-    assert(!(txn_flags & MDB_RDONLY));
     dbi.put(txn, key, val);
 }
 
