@@ -227,69 +227,57 @@ class Database::Transaction
 {
     public:
         /* Methods/Member functions */
+        Transaction(const Transaction &t);
         Transaction(const Database &db);
         Transaction(Database &db);
 
-        void begin();
         void commit();
         void rollback();
 
+        lmdb::cursor cur();
         void del(lmdb::val &key);
         void put(lmdb::val &key, lmdb::val &val);
         bool get(lmdb::val &key, lmdb::val &val);
-        bool itr(lmdb::val &key, lmdb::val &val);
     private:
         /* Attributes/member variables */
-        int ready,
-            txn_flags;
+        int txn_flags;
         lmdb::txn txn;
         lmdb::dbi dbi;
-        lmdb::cursor cur;
         const lmdb::env &env;
 };
 
 /*
  * Transaction (implementation)
  */
+Database::Transaction::Transaction(const Transaction &t) :
+    txn_flags(t.txn_flags),
+    txn(lmdb::txn::begin(t.env, nullptr, txn_flags)),
+    dbi(lmdb::dbi::open(txn)),
+    env(t.env)
+{
+}
+
 Database::Transaction::Transaction(const Database &db) :
-    ready(false),
     txn_flags(MDB_RDONLY),
     txn(lmdb::txn::begin(db.lmdb_env, nullptr, txn_flags)),
     dbi(lmdb::dbi::open(txn)),
-    cur(lmdb::cursor::open(txn, dbi)),
     env(db.lmdb_env)
 {
 }
 
 Database::Transaction::Transaction(Database &db) :
-    ready(false),
     txn_flags(0),
     txn(lmdb::txn::begin(db.lmdb_env, nullptr, txn_flags)),
     dbi(lmdb::dbi::open(txn)),
-    cur(lmdb::cursor::open(txn, dbi)),
     env(db.lmdb_env)
 {
-}
-
-inline
-void
-Database::Transaction::begin()
-{
-    assert(!ready);
-
-    txn = lmdb::txn::begin(env, nullptr, txn_flags);
-    dbi = lmdb::dbi::open(txn);
-
-    ready = true;
 }
 
 inline
 void
 Database::Transaction::commit()
 {
-    assert(ready);
     txn.commit();
-    ready = false;
 }
 
 inline
@@ -297,16 +285,13 @@ void
 Database::Transaction::rollback()
 {
     txn.abort();
-    ready = false;
 }
 
 inline
 void
 Database::Transaction::del(lmdb::val &key)
 {
-    assert(ready);
     assert(!(txn_flags & MDB_RDONLY));
-
     dbi.del(txn, key);
 }
 
@@ -314,9 +299,7 @@ inline
 void
 Database::Transaction::put(lmdb::val &key, lmdb::val &val)
 {
-    assert(ready);
     assert(!(txn_flags & MDB_RDONLY));
-
     dbi.put(txn, key, val);
 }
 
@@ -328,10 +311,10 @@ Database::Transaction::get(lmdb::val &key, lmdb::val &val)
 }
 
 inline
-bool
-Database::Transaction::itr(lmdb::val &key, lmdb::val &val)
+lmdb::cursor
+Database::Transaction::cur()
 {
-    return cur.get(key, val, MDB_NEXT);
+    return lmdb::cursor::open(txn, dbi);
 }
 
 /*
@@ -403,20 +386,18 @@ template<typename Impl> class Database::Visitor
         /* Methods/Member functions */
         template<typename T>
         inline
-        void operator() (Database::Entry<T> &e,
-                         Database::Transaction &txn)
+        void operator() (Database::Entry<T> &e, Database::Transaction &t)
         {
             Impl &impl = static_cast<Impl&>(*this);
-            impl(e, txn);
+            impl(e, t);
         }
 
         template<typename T>
         inline
-        void operator() (const Database::Entry<T> &e,
-                         Database::Transaction &txn)
+        void operator() (const Database::Entry<T> &e, Database::Transaction &t)
         {
             Impl &impl = static_cast<Impl&>(*this);
-            impl(e, txn);
+            impl(e, t);
         }
 };
 
@@ -431,7 +412,7 @@ struct Printer : public Database::Visitor<Printer>
 
     template<typename T>
     inline
-    void operator() (const Database::Entry<T> &e, Database::Transaction &txn)
+    void operator() (const Database::Entry<T> &e, Database::Transaction &t)
     {
         assert(e.key.id != NO_ID);
         stream << e.key << '\t' << e.value << endl;
@@ -468,7 +449,7 @@ struct Database::Janitor : public Database::Visitor<Janitor>
     void operator()(); // THREAD ENTRY POINT
 
     template<typename T>
-    void operator() (Database::Entry<T> &e, Database::Transaction &txn);
+    void operator() (Database::Entry<T> &e, Database::Transaction &t);
 
     /* Attributes/member variables */
     Database &db;
@@ -484,7 +465,7 @@ template<>
 inline
 void
 Database::Janitor::operator()<Img> (Database::Entry<Img> &e,
-                                    Database::Transaction &txn)
+                                    Database::Transaction &t)
 {
 }
 
@@ -492,15 +473,14 @@ template<>
 inline
 void
 Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e,
-                                    Database::Transaction &txn)
+                                    Database::Transaction &t)
 {
     assert(e.key.id == TAG_ID);
 
     if (access(e.value.filename.c_str(), F_OK) == 0)
         return;
 
-    txn.begin();
-
+    Transaction txn(t);
     set<Key>::iterator i(e.links_from.begin()), j(e.links_from.end());
     while (i != j) {
         switch (i->id) {
@@ -605,8 +585,6 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
     const Key tag_key(path);
     Database::Transaction txn(db);
     Database::Entry<Tag> tag_ent(tag_key);
-
-    txn.begin();
 
     if (!db.lookup<Tag>(tag_ent, txn) ||
         tag_ent.value.modified < modify_time)
@@ -787,9 +765,10 @@ Database::visit(Visitor<Impl> &v)
 {
     size_t visits = 0;
     Transaction txn(*this);
+    lmdb::cursor cur(txn.cur());
     lmdb::val lmdb_key, lmdb_val;
 
-    while (txn.itr(lmdb_key, lmdb_val)) {
+    while (cur.get(lmdb_key, lmdb_val, MDB_NEXT)) {
         const Key key(reconstruct<Key>(lmdb_key));
 
         switch (key.id) {
@@ -822,9 +801,10 @@ Database::visit(Visitor<Impl> &v) const
 {
     size_t visits = 0;
     Transaction txn(*this);
+    lmdb::cursor cur(txn.cur());
     lmdb::val lmdb_key, lmdb_val;
 
-    while (txn.itr(lmdb_key, lmdb_val)) {
+    while (cur.get(lmdb_key, lmdb_val, MDB_NEXT)) {
         const Key key(reconstruct<Key>(lmdb_key));
 
         switch (key.id) {
