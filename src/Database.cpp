@@ -581,11 +581,12 @@ Database::Maintainer::operator()() // THREAD ENTRY POINT
         if (img_key) {
             Database::Entry<Img> img_ent(img_key);
 
-            if (db.lookup<Img>(img_ent, txn) &&
+            if (!db.lookup<Img>(img_ent, txn) &&
                 copy_img_data(tags, img_ent.value))
                 img_ent.added = 1;
 
             img_ent.links_from.insert(tag_key);
+            img_ent.updated = !img_ent.added;
             tag_ent.links_to.insert(img_key);
             db.update<Img>(img_ent, txn);
         }
