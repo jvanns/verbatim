@@ -466,8 +466,10 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e,
     if (access(e.value.filename.c_str(), F_OK) == 0)
         return;
 
+    assert(e.links_from.empty()); // A Tag entry should not be linked too
+
     Transaction txn(t);
-    set<Key>::iterator i(e.links_from.begin()), j(e.links_from.end());
+    set<Key>::iterator i(e.links_to.begin()), j(e.links_to.end());
     while (i != j) {
         switch (i->id) {
         case NO_ID:
@@ -475,54 +477,26 @@ Database::Janitor::operator()<Tag> (Database::Entry<Tag> &e,
                                       0,
                                       "Invalid ID (%d) in Key object",
                                       *i);
-        case TAG_ID: {
-                Entry<Tag> link(*i);
-                if (db.lookup(link, txn)) {
-                    link.links_to.erase(e.key);
-                    link.updated = 1;
-                    db.update(link, txn);
-                }
-            }
-            break;
-        case IMG_ID: {
-                Entry<Img> link(*i);
-                if (db.lookup(link, txn)) {
-                    link.links_to.erase(e.key);
-                    link.updated = 1;
-                    db.update(link, txn);
-                }
-            }
-            break;
-        }
-        ++i;
-    }
-
-    for (i = e.links_to.begin(), j = e.links_to.end() ; i != j ; ++i) {
-        switch (i->id) {
-        case NO_ID:
+        case TAG_ID:
             throw utility::ValueError("Janitor::operator()",
                                       0,
-                                      "Invalid ID (%d) in Key object",
-                                      *i);
-        case TAG_ID: {
-                Entry<Tag> link(*i);
-                if (db.lookup(link, txn)) {
-                    link.links_from.erase(e.key);
-                    link.updated = 1;
-                    db.update(link, txn);
-                }
-            }
-            break;
+                                      "%zu <-> %zu Tag relationship unexpected",
+                                      e.key.value, *i);
         case IMG_ID: {
                 Entry<Img> link(*i);
                 if (db.lookup(link, txn)) {
                     link.links_from.erase(e.key);
-                    link.updated = 1;
+                    if (link.links_from.empty())
+                        link.removed = 1;
+                    else
+                        link.updated = 1;
                     db.update(link, txn);
                 }
             }
             break;
         }
+
+        ++i;
     }
 
     /*
