@@ -649,7 +649,6 @@ void
 Database::update(const string &path)
 {
     const Janitor j(*this);
-    open(path);
     threads.submit(j);
 }
 
