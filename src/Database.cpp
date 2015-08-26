@@ -413,7 +413,7 @@ struct Printer : public Database::Visitor<Printer>
 
         set<Key>::iterator i(e.links_to.begin()), j(e.links_to.end());
         while (i != j) {
-            stream << "\t[->]\t" << *i;
+            stream << "\t" << *i << endl;
             ++i;
         }
 
@@ -421,7 +421,7 @@ struct Printer : public Database::Visitor<Printer>
             stream << endl;
 
         for (i = e.links_from.begin(), j = e.links_from.end() ; i != j ; ++i)
-            stream << "\t[<-]\t" << *i;
+            stream << "\t" << *i << endl;
 
         if (e.links_from.size() > 0)
             stream << endl;
