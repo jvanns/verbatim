@@ -1,3 +1,6 @@
 [submodule "sub/lmdbxx"]
 	path = sub/lmdbxx
 	url = https://github.com/bendiken/lmdbxx.git
+[submodule "sub/lmdb"]
+	path = sub/lmdb
+	url = http://github.com/LMDB/lmdb
