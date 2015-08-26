@@ -144,6 +144,7 @@ struct Key
     explicit Key(const TagLib::ID3v2::Tag *tag);
 
     operator bool() const;
+    bool operator< (const Key &other) const;
     bool operator== (const Key &other) const;
 
     template<typename Archive>
@@ -198,6 +199,13 @@ inline
 Key::operator bool() const
 {
     return id != NO_ID && value != 0;
+}
+
+inline
+bool
+Key::operator< (const Key &other) const
+{
+    return id <= other.id && value < other.value;
 }
 
 inline
